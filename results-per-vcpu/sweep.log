@@ -1,0 +1,195 @@
+==========================================================
+= START direct-pipecat-1cpu-vad-td (target=direct-pipecat url=ws://localhost:8080)
+==========================================================
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+usage: cli.py [-h]
+              [--profile {smoke,light,medium,heavy,stress,capacity,custom,pyvad_probe,at_rust_probe,at_py_90100,scratch_10100,scratch_225300,scratch_125200,scratch_60100,scratch_1050,direct_c50,direct_c80,direct_c20,at_py_c80,at_rust_c100,at_rust_pool_100140,at_rust_120160,direct_2040,at_py_6080,at_rust_80100,at_rust_cliff,at_5060,at_rust_4060,lk_horiz,lk_horiz_160190,lk_horiz_150250,lk_105120,direct_c50_var,at_horiz_c200,at_horiz_c100,at_horiz_c110,at_horiz_c115,at_horiz_c120,at_horiz_c125,at_horiz_c150,at_horiz_c175,lk_horiz_c140,lk_horiz_c150,lk_c27,lk_2028,fresh_smoke,per_vcpu_2_20,per_vcpu_2_20_warm}]
+              [--target {all,both,direct,agent-transport,agent-transport-python-vad,agent-transport-rust-vad,agent-transport-livekit}]
+              [--no-docker] [--direct-url DIRECT_URL] [--at-url AT_URL]
+              [--at-python-url AT_PYTHON_URL] [--at-rust-url AT_RUST_URL]
+              [--lk-url LK_URL] [--output OUTPUT]
+cli.py: error: argument --target: invalid choice: 'direct-pipecat' (choose from all, both, direct, agent-transport, agent-transport-python-vad, agent-transport-rust-vad, agent-transport-livekit)
+ Network agent-transport-load-test_default Removing 
+ Network agent-transport-load-test_default Removed 
+=== DONE direct-pipecat-1cpu-vad-td exit=2 ===
+==========================================================
+= START at-pipecat-1cpu-vad-td (target=agent-transport-rust-vad url=ws://localhost:8082)
+==========================================================
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:05:16 | INFO    | Benchmark profile: per_vcpu_2_20
+13:05:16 | INFO    | Steps: [(2, '60s'), (4, '60s'), (6, '60s'), (8, '60s'), (10, '60s'), (12, '60s'), (14, '60s'), (16, '60s'), (18, '60s'), (20, '60s')]
+13:05:16 | INFO    | Recreating container 'agent-transport-rust-vad' for fresh state...
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreate 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreated 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Starting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:05:32 | INFO    | Settling 5.0s after restart (prewarm)...
+13:05:37 | INFO    | Running agent-transport-rust-vad | concurrency=2 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=2 | pacing=20 ms (50 f/s ideal)
+  sessions=2 | with_output=2 | eligible=2  ← if eligible << with_output, survivorship bias is in play
+  frames: 5996 sent / 465 recv | throughput=3.6 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.04 ms        22.87 ms
+    (max)                         139.28 ms                
+  Mean / peak CPU                    34.7 %          87.9 %
+  Within-phrase gap                21.72 ms        42.87 ms
+  Jitter (p50/p99)                  1.74 ms        23.23 ms
+  First-frame (cold)             1471.51 ms      1501.38 ms
+  Post-warmup RTT                1051.29 ms      1119.27 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1886.2 MB       2613.8 MB
+13:07:57 | INFO    | Recreating container 'agent-transport-rust-vad' for fresh state...
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreate 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreated 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Starting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:08:13 | INFO    | Settling 5.0s after restart (prewarm)...
+13:08:18 | INFO    | Running agent-transport-rust-vad | concurrency=4 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=4 | pacing=20 ms (50 f/s ideal)
+  sessions=4 | with_output=4 | eligible=0  ← if eligible << with_output, survivorship bias is in play
+  frames: 11970 sent / 268 recv | throughput=2.1 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap                 -- ms           -- ms
+    (max)                             -- ms                
+  Mean / peak CPU                    47.6 %         109.4 %
+  Within-phrase gap                   -- ms           -- ms
+  Jitter (p50/p99)                    -- ms           -- ms
+  First-frame (cold)             8481.32 ms     33992.96 ms
+  Post-warmup RTT               10139.86 ms     24516.22 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              2104.8 MB       2860.5 MB
+13:10:39 | INFO    | Recreating container 'agent-transport-rust-vad' for fresh state...
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreate 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreated 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Starting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:10:55 | INFO    | Settling 5.0s after restart (prewarm)...
+13:11:00 | INFO    | Running agent-transport-rust-vad | concurrency=6 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=6 | pacing=20 ms (50 f/s ideal)
+  sessions=6 | with_output=6 | eligible=0  ← if eligible << with_output, survivorship bias is in play
+  frames: 17925 sent / 266 recv | throughput=2.0 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap                 -- ms           -- ms
+    (max)                             -- ms                
+  Mean / peak CPU                    56.7 %         143.5 %
+  Within-phrase gap                   -- ms           -- ms
+  Jitter (p50/p99)                    -- ms           -- ms
+  First-frame (cold)            53460.62 ms     70933.55 ms
+  Post-warmup RTT               43209.48 ms     60923.52 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              2069.3 MB       2444.6 MB
+13:13:21 | INFO    | Recreating container 'agent-transport-rust-vad' for fresh state...
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreate 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreated 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Starting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:13:37 | INFO    | Settling 5.0s after restart (prewarm)...
+13:13:42 | INFO    | Running agent-transport-rust-vad | concurrency=8 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=8 | pacing=20 ms (50 f/s ideal)
+  sessions=8 | with_output=8 | eligible=0  ← if eligible << with_output, survivorship bias is in play
+  frames: 23856 sent / 286 recv | throughput=2.2 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap                 -- ms           -- ms
+    (max)                             -- ms                
+  Mean / peak CPU                    73.1 %         121.0 %
+  Within-phrase gap                   -- ms           -- ms
+  Jitter (p50/p99)                    -- ms           -- ms
+  First-frame (cold)            96680.58 ms     97057.03 ms
+  Post-warmup RTT               86580.87 ms     86749.74 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              2556.8 MB       2980.5 MB
+13:16:03 | INFO    | Recreating container 'agent-transport-rust-vad' for fresh state...
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreate 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreated 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Starting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:16:19 | INFO    | Settling 5.0s after restart (prewarm)...
+13:16:24 | INFO    | Running agent-transport-rust-vad | concurrency=10 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=10 | pacing=20 ms (50 f/s ideal)
+  sessions=10 | with_output=10 | eligible=0  ← if eligible << with_output, survivorship bias is in play
+  frames: 29777 sent / 380 recv | throughput=2.9 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap                 -- ms           -- ms
+    (max)                             -- ms                
+  Mean / peak CPU                    84.2 %         141.9 %
+  Within-phrase gap                   -- ms           -- ms
+  Jitter (p50/p99)                    -- ms           -- ms
+  First-frame (cold)           111270.70 ms    111519.12 ms
+  Post-warmup RTT              100890.67 ms    100921.07 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              2596.2 MB       2817.3 MB
+13:18:45 | INFO    | Recreating container 'agent-transport-rust-vad' for fresh state...
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreate 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreated 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Starting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:19:01 | INFO    | Settling 5.0s after restart (prewarm)...
+13:19:06 | INFO    | Running agent-transport-rust-vad | concurrency=12 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=12 | pacing=20 ms (50 f/s ideal)
+  sessions=12 | with_output=0 | eligible=0  ← if eligible << with_output, survivorship bias is in play
+  frames: 35671 sent / 0 recv | throughput=0.0 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap                 -- ms           -- ms
+    (max)                             -- ms                
+  Mean / peak CPU                   105.5 %         118.9 %
+  Within-phrase gap                   -- ms           -- ms
+  Jitter (p50/p99)                    -- ms           -- ms
+  First-frame (cold)             5404.71 ms      5538.73 ms
+  Post-warmup RTT                     -- ms           -- ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              2612.3 MB       3265.6 MB
+13:21:27 | INFO    | Recreating container 'agent-transport-rust-vad' for fresh state...
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreate 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Recreated 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Starting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Started 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Waiting 
+ Container agent-transport-load-test-agent-transport-rust-vad-1 Healthy 
+13:21:43 | INFO    | Settling 5.0s after restart (prewarm)...
+13:21:48 | INFO    | Running agent-transport-rust-vad | concurrency=14 | duration=60s | warmup=10s

@@ -1,0 +1,86 @@
+# Horizontal scaling test: 4 × AT+PyVAD instances, each at 1 CPU / 4 GB.
+# Different host ports; each is an independent Python+agent-transport process.
+# VAD is disabled on all (scratch experiment pattern).
+#
+# Apply with: docker compose -f docker-compose.yml -f docker-compose.horizontal.yml up -d
+#
+# The 4 horiz services replace the default agent-transport-python-vad which would
+# otherwise also try to bind port 8081. We leave direct-pipecat and agent-transport-
+# livekit in the base compose — they're ignored (stopped) during this run.
+
+services:
+  # Disable the default single-instance py-vad service so it doesn't compete for port 8081.
+  agent-transport-python-vad:
+    profiles: ["never"]   # excluded from default `up`
+
+  agent-transport-python-vad-horiz-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport
+    ports:
+      - "8091:8091"
+    environment:
+      WS_PORT: "8091"
+      ENABLE_VAD: "false"
+      VAD_BACKEND: "off"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"
+
+  agent-transport-python-vad-horiz-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport
+    ports:
+      - "8092:8092"
+    environment:
+      WS_PORT: "8092"
+      ENABLE_VAD: "false"
+      VAD_BACKEND: "off"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"
+
+  agent-transport-python-vad-horiz-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport
+    ports:
+      - "8093:8093"
+    environment:
+      WS_PORT: "8093"
+      ENABLE_VAD: "false"
+      VAD_BACKEND: "off"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"
+
+  agent-transport-python-vad-horiz-4:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport
+    ports:
+      - "8094:8094"
+    environment:
+      WS_PORT: "8094"
+      ENABLE_VAD: "false"
+      VAD_BACKEND: "off"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"

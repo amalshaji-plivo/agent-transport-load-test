@@ -1,0 +1,30 @@
+# Override for 1-CPU / 4-GB per-vCPU comparison with VAD ON.
+# - direct-pipecat: SileroVADAnalyzer (Python ONNX, on the asyncio loop)
+# - agent-transport-rust-vad: Rust Silero VAD on the transport endpoint
+# - agent-transport-livekit:  Rust Silero VAD on the transport endpoint
+# Turn-detection: pipecat uses SpeechTimeoutUserTurnStopStrategy; LiveKit uses
+# turn_handling="stt". No external turn-detector model is loaded — keeping
+# this run consistent with what the Dockerfiles install today.
+#
+# Run with: CPU_LIMIT=1.0 MEM_LIMIT=4G docker compose \
+#     -f docker-compose.yml -f docker-compose.vad-1cpu.yml up -d <service>
+services:
+  direct-pipecat:
+    environment:
+      ENABLE_VAD: "true"
+      ENABLE_TURN_DETECTOR: "${ENABLE_TURN_DETECTOR:-false}"
+      WORKERS: "1"
+
+  agent-transport-rust-vad:
+    environment:
+      ENABLE_VAD: "true"
+      ENABLE_TURN_DETECTOR: "${ENABLE_TURN_DETECTOR:-false}"
+      VAD_BACKEND: "rust"
+      WS_PORT: "8082"
+
+  agent-transport-livekit:
+    environment:
+      ENABLE_VAD: "true"
+      ENABLE_TURN_DETECTOR: "${ENABLE_TURN_DETECTOR:-false}"
+      WS_PORT: "8083"
+      HTTP_PORT: "8184"

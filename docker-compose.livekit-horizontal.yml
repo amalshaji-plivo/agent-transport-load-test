@@ -1,0 +1,75 @@
+services:
+  agent-transport-livekit:
+    profiles: ["never"]
+
+  agent-transport-livekit-horiz-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport-livekit
+    ports:
+      - "8091:8091"
+    environment:
+      WS_PORT: "8091"
+      HTTP_PORT: "8191"
+      ENABLE_VAD: "false"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"
+
+  agent-transport-livekit-horiz-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport-livekit
+    ports:
+      - "8092:8092"
+    environment:
+      WS_PORT: "8092"
+      HTTP_PORT: "8192"
+      ENABLE_VAD: "false"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"
+
+  agent-transport-livekit-horiz-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport-livekit
+    ports:
+      - "8093:8093"
+    environment:
+      WS_PORT: "8093"
+      HTTP_PORT: "8193"
+      ENABLE_VAD: "false"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"
+
+  agent-transport-livekit-horiz-4:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport-livekit
+    ports:
+      - "8094:8094"
+    environment:
+      WS_PORT: "8094"
+      HTTP_PORT: "8194"
+      ENABLE_VAD: "false"
+    cpus: "1.0"
+    mem_limit: "${MEM_LIMIT:-4G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "${MEM_LIMIT:-4G}"

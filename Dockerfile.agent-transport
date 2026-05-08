@@ -1,0 +1,23 @@
+FROM python:3.13-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential cmake && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install pipecat, agent-transport (from PyPI), and support deps.
+# NOTE: agent-transport==0.1.11 is the latest PyPI release. The local-wheel
+# install was previously used for an in-development Rust VAD build — reverted
+# to PyPI because the benchmark now targets released code only.
+RUN pip install --no-cache-dir \
+    "pipecat-ai[silero]>=0.0.108" \
+    "agent-transport==0.1.11" \
+    aiohttp loguru websockets uvloop \
+    transformers soxr
+
+COPY load_test/ load_test/
+
+EXPOSE 8081
+
+CMD ["python", "-m", "load_test.servers.agent_transport_server", "start"]

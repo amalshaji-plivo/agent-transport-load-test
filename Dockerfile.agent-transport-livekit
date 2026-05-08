@@ -1,0 +1,30 @@
+FROM python:3.13-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential cmake && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install livekit-agents, agent-transport (from PyPI), and support deps.
+# livekit-plugins-turn-detector ships the multilingual ONNX EOU model used
+# when ENABLE_TURN_DETECTOR=true. Models are pulled from HuggingFace at first
+# use; we trigger that ahead of time below so containers don't pay the
+# download penalty inside a benchmark step.
+RUN pip install --no-cache-dir \
+    "livekit-agents>=1.5" \
+    livekit-plugins-silero \
+    livekit-plugins-turn-detector \
+    "agent-transport==0.1.11" \
+    aiohttp loguru websockets uvloop
+
+# Pre-download the multilingual EOU model so the first session doesn't pay
+# the HuggingFace download cost. Uses the runner class method (the model class
+# constructor needs a JobContext, but the runner's _download_files() doesn't).
+RUN python -c "from livekit.plugins.turn_detector.multilingual import _EUORunnerMultilingual; _EUORunnerMultilingual._download_files()"
+
+COPY load_test/ load_test/
+
+EXPOSE 8083
+
+CMD ["python", "-m", "load_test.servers.agent_transport_livekit_server", "start"]

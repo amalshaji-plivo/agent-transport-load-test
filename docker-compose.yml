@@ -1,0 +1,96 @@
+services:
+  direct-pipecat:
+    build:
+      context: .
+      dockerfile: Dockerfile.direct
+    ports:
+      - "8080:8080"
+    environment:
+      ENABLE_VAD: "${DIRECT_ENABLE_VAD:-true}"
+    # Belt-and-suspenders CPU/memory limits: root-level (works on OrbStack/Docker
+    # Desktop compose) + deploy.resources (works on Swarm). One of them will bind.
+    cpus: "${CPU_LIMIT:-1.0}"
+    mem_limit: "${MEM_LIMIT:-512M}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT:-1.0}"
+          memory: "${MEM_LIMIT:-512M}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost',8080)); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 10s
+
+  agent-transport-python-vad:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport
+    ports:
+      - "8081:8081"
+    environment:
+      ENABLE_VAD: "true"
+      VAD_BACKEND: "python"
+      VAD_POOL_SIZE: "${VAD_POOL_SIZE:-8}"
+    cpus: "${CPU_LIMIT:-1.0}"
+    mem_limit: "${MEM_LIMIT:-512M}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT:-1.0}"
+          memory: "${MEM_LIMIT:-512M}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost',8081)); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 10s
+
+  agent-transport-rust-vad:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport
+    ports:
+      - "8082:8082"
+    environment:
+      ENABLE_VAD: "true"
+      WS_PORT: "8082"
+      VAD_BACKEND: "rust"
+      VAD_POOL_SIZE: "${VAD_POOL_SIZE:-8}"
+    cpus: "${CPU_LIMIT:-1.0}"
+    mem_limit: "${MEM_LIMIT:-512M}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT:-1.0}"
+          memory: "${MEM_LIMIT:-512M}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost',8082)); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 10s
+
+  agent-transport-livekit:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent-transport-livekit
+    ports:
+      - "8083:8083"
+    environment:
+      WS_PORT: "8083"
+      HTTP_PORT: "8184"
+    cpus: "${CPU_LIMIT:-1.0}"
+    mem_limit: "${MEM_LIMIT:-512M}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT:-1.0}"
+          memory: "${MEM_LIMIT:-512M}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost',8083)); s.close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 10s

@@ -1,0 +1,30 @@
+14:40:17 | INFO    | Benchmark profile: direct_c50
+14:40:17 | INFO    | Steps: [(50, '60s')]
+14:40:17 | INFO    | Recreating container 'direct-pipecat' for fresh state...
+ Container agent-transport-load-test-direct-pipecat-1 Recreate 
+ Container agent-transport-load-test-direct-pipecat-1 Recreated 
+ Container agent-transport-load-test-direct-pipecat-1 Starting 
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+14:40:24 | INFO    | Settling 5.0s after restart (prewarm)...
+14:40:29 | INFO    | Running direct-pipecat | concurrency=50 | duration=60s | warmup=10s
+
+============================================================
+  direct-pipecat | concurrency=50 | pacing=40 ms (25 f/s ideal)
+  sessions=50 | with_output=50 | eligible=50  ← if eligible << with_output, survivorship bias is in play
+  frames: 146919 sent / 27398 recv | throughput=210.8 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.39 ms       202.36 ms
+    (max)                         216.45 ms                
+  Mean / peak CPU                    47.7 %         118.7 %
+  Within-phrase gap                54.52 ms       242.36 ms
+  Jitter (p50/p99)                 14.35 ms       187.84 ms
+  First-frame (cold)             1875.25 ms      1884.08 ms
+  Post-warmup RTT                 162.49 ms       707.16 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              2096.1 MB       3436.0 MB
+Results exported to results-revalidate/direct_c50_run4.json

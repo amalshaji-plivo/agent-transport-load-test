@@ -1,0 +1,426 @@
+= direct-pipecat vertical 4 CPU / 10 GB | profile=direct_c50 | runs=5
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+--- direct run 1 ---
+13:31:19 | INFO    | Benchmark profile: direct_c50
+13:31:19 | INFO    | Steps: [(50, '60s')]
+13:31:19 | INFO    | Recreating container 'direct-pipecat' for fresh state...
+ Container agent-transport-load-test-direct-pipecat-1 Recreate 
+ Container agent-transport-load-test-direct-pipecat-1 Recreated 
+ Container agent-transport-load-test-direct-pipecat-1 Starting 
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+13:31:25 | INFO    | Settling 5.0s after restart (prewarm)...
+13:31:30 | INFO    | Running direct-pipecat | concurrency=50 | duration=60s | warmup=10s
+
+============================================================
+  direct-pipecat | concurrency=50 | pacing=40 ms (25 f/s ideal)
+  sessions=50 | with_output=50 | eligible=50  ← if eligible << with_output, survivorship bias is in play
+  frames: 146917 sent / 26725 recv | throughput=205.6 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.15 ms       201.78 ms
+    (max)                         438.72 ms                
+  Mean / peak CPU                    46.9 %         138.6 %
+  Within-phrase gap                54.51 ms       241.78 ms
+  Jitter (p50/p99)                 14.47 ms       187.27 ms
+  First-frame (cold)             1873.31 ms      1878.70 ms
+  Post-warmup RTT                 191.61 ms       714.45 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1739.4 MB       2937.4 MB
+Results exported to results-revalidate/direct_c50_run1.json
+--- direct run 2 ---
+13:33:53 | INFO    | Benchmark profile: direct_c50
+13:33:53 | INFO    | Steps: [(50, '60s')]
+13:33:53 | INFO    | Recreating container 'direct-pipecat' for fresh state...
+ Container agent-transport-load-test-direct-pipecat-1 Recreate 
+ Container agent-transport-load-test-direct-pipecat-1 Recreated 
+ Container agent-transport-load-test-direct-pipecat-1 Starting 
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+13:34:00 | INFO    | Settling 5.0s after restart (prewarm)...
+13:34:05 | INFO    | Running direct-pipecat | concurrency=50 | duration=60s | warmup=10s
+
+============================================================
+  direct-pipecat | concurrency=50 | pacing=40 ms (25 f/s ideal)
+  sessions=50 | with_output=50 | eligible=50  ← if eligible << with_output, survivorship bias is in play
+  frames: 146914 sent / 27400 recv | throughput=210.8 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.29 ms       202.32 ms
+    (max)                         208.48 ms                
+  Mean / peak CPU                    45.8 %          93.2 %
+  Within-phrase gap                54.48 ms       242.32 ms
+  Jitter (p50/p99)                 14.38 ms       187.84 ms
+  First-frame (cold)             1873.86 ms      1878.98 ms
+  Post-warmup RTT                 193.10 ms       706.68 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              3227.0 MB       3430.9 MB
+Results exported to results-revalidate/direct_c50_run2.json
+--- direct run 3 ---
+13:36:27 | INFO    | Benchmark profile: direct_c50
+13:36:27 | INFO    | Steps: [(50, '60s')]
+13:36:27 | INFO    | Recreating container 'direct-pipecat' for fresh state...
+ Container agent-transport-load-test-direct-pipecat-1 Recreate 
+ Container agent-transport-load-test-direct-pipecat-1 Recreated 
+ Container agent-transport-load-test-direct-pipecat-1 Starting 
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+13:36:34 | INFO    | Settling 5.0s after restart (prewarm)...
+13:36:39 | INFO    | Running direct-pipecat | concurrency=50 | duration=60s | warmup=10s
+
+============================================================
+  direct-pipecat | concurrency=50 | pacing=40 ms (25 f/s ideal)
+  sessions=50 | with_output=50 | eligible=50  ← if eligible << with_output, survivorship bias is in play
+  frames: 146915 sent / 27369 recv | throughput=210.5 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.17 ms       202.14 ms
+    (max)                         260.43 ms                
+  Mean / peak CPU                    46.7 %         133.1 %
+  Within-phrase gap                54.48 ms       242.14 ms
+  Jitter (p50/p99)                 14.44 ms       187.66 ms
+  First-frame (cold)             1874.55 ms      1882.66 ms
+  Post-warmup RTT                 184.73 ms       705.21 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              2726.1 MB       3597.8 MB
+Results exported to results-revalidate/direct_c50_run3.json
+--- direct run 4 ---
+13:39:01 | INFO    | Benchmark profile: direct_c50
+13:39:01 | INFO    | Steps: [(50, '60s')]
+13:39:01 | INFO    | Recreating container 'direct-pipecat' for fresh state...
+ Container agent-transport-load-test-direct-pipecat-1 Recreate 
+ Container agent-transport-load-test-direct-pipecat-1 Recreated 
+ Container agent-transport-load-test-direct-pipecat-1 Starting 
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+13:39:08 | INFO    | Settling 5.0s after restart (prewarm)...
+13:39:13 | INFO    | Running direct-pipecat | concurrency=50 | duration=60s | warmup=10s
+
+============================================================
+  direct-pipecat | concurrency=50 | pacing=40 ms (25 f/s ideal)
+  sessions=50 | with_output=50 | eligible=50  ← if eligible << with_output, survivorship bias is in play
+  frames: 146913 sent / 27400 recv | throughput=210.8 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.30 ms       202.18 ms
+    (max)                         208.43 ms                
+  Mean / peak CPU                    46.5 %          99.4 %
+  Within-phrase gap                54.49 ms       242.18 ms
+  Jitter (p50/p99)                 14.36 ms       187.70 ms
+  First-frame (cold)             1874.82 ms      1890.30 ms
+  Post-warmup RTT                 184.87 ms       703.30 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              3303.4 MB       3480.1 MB
+Results exported to results-revalidate/direct_c50_run4.json
+--- direct run 5 ---
+13:41:36 | INFO    | Benchmark profile: direct_c50
+13:41:36 | INFO    | Steps: [(50, '60s')]
+13:41:36 | INFO    | Recreating container 'direct-pipecat' for fresh state...
+ Container agent-transport-load-test-direct-pipecat-1 Recreate 
+ Container agent-transport-load-test-direct-pipecat-1 Recreated 
+ Container agent-transport-load-test-direct-pipecat-1 Starting 
+ Container agent-transport-load-test-direct-pipecat-1 Started 
+ Container agent-transport-load-test-direct-pipecat-1 Waiting 
+ Container agent-transport-load-test-direct-pipecat-1 Healthy 
+13:41:42 | INFO    | Settling 5.0s after restart (prewarm)...
+13:41:47 | INFO    | Running direct-pipecat | concurrency=50 | duration=60s | warmup=10s
+
+============================================================
+  direct-pipecat | concurrency=50 | pacing=40 ms (25 f/s ideal)
+  sessions=50 | with_output=50 | eligible=50  ← if eligible << with_output, survivorship bias is in play
+  frames: 146908 sent / 27447 recv | throughput=211.1 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.14 ms       201.70 ms
+    (max)                         207.89 ms                
+  Mean / peak CPU                    46.6 %         116.9 %
+  Within-phrase gap                54.31 ms       241.70 ms
+  Jitter (p50/p99)                 14.29 ms       187.38 ms
+  First-frame (cold)             1874.02 ms      1878.68 ms
+  Post-warmup RTT                 176.66 ms       706.06 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              3036.1 MB       3545.7 MB
+Results exported to results-revalidate/direct_c50_run5.json
+ Container agent-transport-load-test-direct-pipecat-1 Removed 
+ Network agent-transport-load-test_default Removing 
+ Network agent-transport-load-test_default Removed 
+=== DONE direct ===
+= AT + pipecat horiz 4 × (1 CPU / 2.5 GB) | profile=at_horiz_c110 | runs=5
+--- at-pipecat run 1 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-2-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-1-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-4-1 Healthy 
+13:44:17 | INFO    | Benchmark profile: at_horiz_c110
+13:44:17 | INFO    | Steps: [(110, '60s')]
+13:44:17 | INFO    | Running agent-transport-rust-vad | concurrency=110 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=110 | pacing=20 ms (50 f/s ideal)
+  sessions=110 | with_output=110 | eligible=110  ← if eligible << with_output, survivorship bias is in play
+  frames: 321522 sent / 177433 recv | throughput=1364.9 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.01 ms       399.82 ms
+    (max)                         479.96 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                30.84 ms       419.82 ms
+  Jitter (p50/p99)                 10.85 ms       388.97 ms
+  First-frame (cold)             1581.31 ms      1582.49 ms
+  Post-warmup RTT                  14.00 ms       450.90 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_pipecat_c110_run1.json
+--- at-pipecat run 2 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-2-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-1-1 Healthy 
+13:46:57 | INFO    | Benchmark profile: at_horiz_c110
+13:46:57 | INFO    | Steps: [(110, '60s')]
+13:46:57 | INFO    | Running agent-transport-rust-vad | concurrency=110 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=110 | pacing=20 ms (50 f/s ideal)
+  sessions=110 | with_output=110 | eligible=110  ← if eligible << with_output, survivorship bias is in play
+  frames: 321522 sent / 177385 recv | throughput=1364.6 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.01 ms       399.84 ms
+    (max)                         479.98 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                30.87 ms       419.84 ms
+  Jitter (p50/p99)                 10.88 ms       388.97 ms
+  First-frame (cold)             1581.27 ms      1582.62 ms
+  Post-warmup RTT                  20.77 ms       478.28 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_pipecat_c110_run2.json
+--- at-pipecat run 3 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-1-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-2-1 Healthy 
+13:49:37 | INFO    | Benchmark profile: at_horiz_c110
+13:49:37 | INFO    | Steps: [(110, '60s')]
+13:49:37 | INFO    | Running agent-transport-rust-vad | concurrency=110 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=110 | pacing=20 ms (50 f/s ideal)
+  sessions=110 | with_output=110 | eligible=110  ← if eligible << with_output, survivorship bias is in play
+  frames: 321523 sent / 177232 recv | throughput=1363.4 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.01 ms       399.83 ms
+    (max)                         479.93 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                30.86 ms       419.83 ms
+  Jitter (p50/p99)                 10.87 ms       388.97 ms
+  First-frame (cold)             1581.33 ms      1582.57 ms
+  Post-warmup RTT                  18.24 ms       450.25 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_pipecat_c110_run3.json
+--- at-pipecat run 4 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-2-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-1-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-4-1 Healthy 
+13:52:17 | INFO    | Benchmark profile: at_horiz_c110
+13:52:17 | INFO    | Steps: [(110, '60s')]
+13:52:17 | INFO    | Running agent-transport-rust-vad | concurrency=110 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=110 | pacing=20 ms (50 f/s ideal)
+  sessions=110 | with_output=110 | eligible=110  ← if eligible << with_output, survivorship bias is in play
+  frames: 321521 sent / 177617 recv | throughput=1366.4 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.01 ms       399.85 ms
+    (max)                         479.96 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                30.81 ms       419.85 ms
+  Jitter (p50/p99)                 10.82 ms       389.04 ms
+  First-frame (cold)             1581.37 ms      1582.32 ms
+  Post-warmup RTT                  19.85 ms       477.91 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_pipecat_c110_run4.json
+--- at-pipecat run 5 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-1-1 Healthy 
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-2-1 Healthy 
+13:54:56 | INFO    | Benchmark profile: at_horiz_c110
+13:54:56 | INFO    | Steps: [(110, '60s')]
+13:54:56 | INFO    | Running agent-transport-rust-vad | concurrency=110 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=110 | pacing=20 ms (50 f/s ideal)
+  sessions=110 | with_output=110 | eligible=110  ← if eligible << with_output, survivorship bias is in play
+  frames: 321522 sent / 177256 recv | throughput=1363.6 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.01 ms       399.75 ms
+    (max)                         480.00 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                31.03 ms       419.75 ms
+  Jitter (p50/p99)                 11.04 ms       388.72 ms
+  First-frame (cold)             1581.33 ms      1582.47 ms
+  Post-warmup RTT                  20.49 ms       478.45 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_pipecat_c110_run5.json
+ Container agent-transport-load-test-agent-transport-python-vad-horiz-4-1 Removed 
+ Network agent-transport-load-test_default Removing 
+ Network agent-transport-load-test_default Removed 
+=== DONE at-pipecat ===
+= AT + LiveKit horiz 4 × (1 CPU / 2.5 GB) | profile=lk_horiz_c140 | runs=5
+--- at-livekit run 1 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-livekit-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-1-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-2-1 Healthy 
+13:57:36 | INFO    | Benchmark profile: lk_horiz_c140
+13:57:36 | INFO    | Steps: [(140, '60s')]
+13:57:36 | INFO    | Running agent-transport-livekit | concurrency=140 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-livekit | concurrency=140 | pacing=20 ms (50 f/s ideal)
+  sessions=140 | with_output=140 | eligible=140  ← if eligible << with_output, survivorship bias is in play
+  frames: 409666 sent / 101179 recv | throughput=778.3 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.02 ms       100.16 ms
+    (max)                         180.15 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                27.31 ms       120.16 ms
+  Jitter (p50/p99)                  7.33 ms        92.85 ms
+  First-frame (cold)             3641.11 ms      3681.15 ms
+  Post-warmup RTT                 710.86 ms      1410.28 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_livekit_c140_run1.json
+--- at-livekit run 2 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-livekit-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-2-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-1-1 Healthy 
+14:00:12 | INFO    | Benchmark profile: lk_horiz_c140
+14:00:12 | INFO    | Steps: [(140, '60s')]
+14:00:12 | INFO    | Running agent-transport-livekit | concurrency=140 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-livekit | concurrency=140 | pacing=20 ms (50 f/s ideal)
+  sessions=140 | with_output=140 | eligible=140  ← if eligible << with_output, survivorship bias is in play
+  frames: 409666 sent / 100933 recv | throughput=776.5 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.02 ms       100.14 ms
+    (max)                         260.17 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                27.25 ms       120.14 ms
+  Jitter (p50/p99)                  7.27 ms        92.89 ms
+  First-frame (cold)             3641.24 ms      3681.43 ms
+  Post-warmup RTT                 728.49 ms      1416.41 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_livekit_c140_run2.json
+--- at-livekit run 3 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-livekit-horiz-3-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-2-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-1-1 Healthy 
+14:02:49 | INFO    | Benchmark profile: lk_horiz_c140
+14:02:49 | INFO    | Steps: [(140, '60s')]
+14:02:49 | INFO    | Running agent-transport-livekit | concurrency=140 | duration=60s | warmup=10s
+./run_revalidate.sh: line 57: 87740 Killed: 9               $PYTHON -m load_test.cli --profile lk_horiz_c140 --target agent-transport-livekit --lk-url "$URLS" --no-docker --output "$OUTDIR/at_livekit_c140_run${i}.json" 2>&1
+     87741 Done                    | tee "$OUTDIR/at_livekit_c140_run${i}.log"
+--- at-livekit run 4 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-livekit-horiz-1-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-2-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-3-1 Healthy 
+14:04:04 | INFO    | Benchmark profile: lk_horiz_c140
+14:04:04 | INFO    | Steps: [(140, '60s')]
+14:04:04 | INFO    | Running agent-transport-livekit | concurrency=140 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-livekit | concurrency=140 | pacing=20 ms (50 f/s ideal)
+  sessions=140 | with_output=140 | eligible=140  ← if eligible << with_output, survivorship bias is in play
+  frames: 409663 sent / 98467 recv | throughput=757.5 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.02 ms       100.18 ms
+    (max)                         180.02 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                27.50 ms       120.18 ms
+  Jitter (p50/p99)                  7.53 ms        92.68 ms
+  First-frame (cold)             3641.37 ms      3661.72 ms
+  Post-warmup RTT                 728.31 ms      1409.32 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_livekit_c140_run4.json
+--- at-livekit run 5 (recreating 4 horiz instances) ---
+ Container agent-transport-load-test-agent-transport-livekit-horiz-4-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-2-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-1-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-horiz-3-1 Healthy 
+14:06:40 | INFO    | Benchmark profile: lk_horiz_c140
+14:06:40 | INFO    | Steps: [(140, '60s')]
+14:06:40 | INFO    | Running agent-transport-livekit | concurrency=140 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-livekit | concurrency=140 | pacing=20 ms (50 f/s ideal)
+  sessions=140 | with_output=140 | eligible=140  ← if eligible << with_output, survivorship bias is in play
+  frames: 409664 sent / 98215 recv | throughput=755.5 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.02 ms       100.17 ms
+    (max)                         200.34 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                27.56 ms       120.17 ms
+  Jitter (p50/p99)                  7.58 ms        92.61 ms
+  First-frame (cold)             3641.32 ms      3661.25 ms
+  Post-warmup RTT                 691.11 ms      1399.88 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_livekit_c140_run5.json
+ Container agent-transport-load-test-agent-transport-livekit-horiz-1-1 Removed 
+ Network agent-transport-load-test_default Removing 
+ Network agent-transport-load-test_default Removed 
+=== DONE at-livekit ===

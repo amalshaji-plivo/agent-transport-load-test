@@ -1,0 +1,14 @@
+[project]
+name = "agent-transport-load-test"
+version = "0.1.0"
+description = "Load test comparing direct pipecat vs agent-transport audio streaming"
+requires-python = ">=3.13"
+dependencies = [
+    "agent-transport[pipecat]",
+    "pipecat-ai[websocket]",
+    "websockets>=12.0",
+    "psutil>=5.9",
+    "docker>=7.0",
+    "aiohttp>=3.13.5",
+    "requests>=2.33.1",
+]

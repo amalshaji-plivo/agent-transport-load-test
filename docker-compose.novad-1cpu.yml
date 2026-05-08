@@ -1,0 +1,28 @@
+# Override for 1-CPU / 4-GB apples-to-apples comparison.
+# - VAD off on all server variants
+# - direct-pipecat runs a SINGLE uvicorn worker (1 worker = 1 CPU, apples-to-apples with AT)
+#
+# Run with: CPU_LIMIT=1.0 MEM_LIMIT=4G docker compose \
+#     -f docker-compose.yml -f docker-compose.novad-1cpu.yml up -d <service>
+services:
+  direct-pipecat:
+    environment:
+      ENABLE_VAD: "false"
+      WORKERS: "1"
+
+  agent-transport-python-vad:
+    environment:
+      ENABLE_VAD: "false"
+      VAD_BACKEND: "off"
+
+  agent-transport-rust-vad:
+    environment:
+      ENABLE_VAD: "false"
+      VAD_BACKEND: "off"
+      WS_PORT: "8082"
+
+  agent-transport-livekit:
+    environment:
+      ENABLE_VAD: "false"
+      WS_PORT: "8083"
+      HTTP_PORT: "8184"

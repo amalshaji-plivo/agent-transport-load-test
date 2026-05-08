@@ -1,0 +1,18 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# pipecat-ai[websocket] brings FastAPIWebsocketTransport + serializers;
+# fastapi + uvicorn for the ASGI server.
+# transformers + soxr are runtime deps of LocalSmartTurnAnalyzerV3 (Whisper
+# feature extractor + audio resampling for the smart-turn-v3 ONNX model).
+RUN pip install --no-cache-dir \
+    "pipecat-ai[websocket,silero]" \
+    fastapi uvicorn aiohttp loguru websockets uvloop \
+    transformers soxr
+
+COPY load_test/ load_test/
+
+EXPOSE 8080
+
+CMD ["python", "-m", "load_test.servers.direct_pipecat_server", "--port", "8080"]

@@ -1,0 +1,3 @@
+14:02:49 | INFO    | Benchmark profile: lk_horiz_c140
+14:02:49 | INFO    | Steps: [(140, '60s')]
+14:02:49 | INFO    | Running agent-transport-livekit | concurrency=140 | duration=60s | warmup=10s

@@ -1,0 +1,22 @@
+13:49:37 | INFO    | Benchmark profile: at_horiz_c110
+13:49:37 | INFO    | Steps: [(110, '60s')]
+13:49:37 | INFO    | Running agent-transport-rust-vad | concurrency=110 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-rust-vad | concurrency=110 | pacing=20 ms (50 f/s ideal)
+  sessions=110 | with_output=110 | eligible=110  ← if eligible << with_output, survivorship bias is in play
+  frames: 321523 sent / 177232 recv | throughput=1363.4 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.01 ms       399.83 ms
+    (max)                         479.93 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                30.86 ms       419.83 ms
+  Jitter (p50/p99)                 10.87 ms       388.97 ms
+  First-frame (cold)             1581.33 ms      1582.57 ms
+  Post-warmup RTT                  18.24 ms       450.25 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_pipecat_c110_run3.json

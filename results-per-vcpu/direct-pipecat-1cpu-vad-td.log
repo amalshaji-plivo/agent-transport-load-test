@@ -1,0 +1,7 @@
+usage: cli.py [-h]
+              [--profile {smoke,light,medium,heavy,stress,capacity,custom,pyvad_probe,at_rust_probe,at_py_90100,scratch_10100,scratch_225300,scratch_125200,scratch_60100,scratch_1050,direct_c50,direct_c80,direct_c20,at_py_c80,at_rust_c100,at_rust_pool_100140,at_rust_120160,direct_2040,at_py_6080,at_rust_80100,at_rust_cliff,at_5060,at_rust_4060,lk_horiz,lk_horiz_160190,lk_horiz_150250,lk_105120,direct_c50_var,at_horiz_c200,at_horiz_c100,at_horiz_c110,at_horiz_c115,at_horiz_c120,at_horiz_c125,at_horiz_c150,at_horiz_c175,lk_horiz_c140,lk_horiz_c150,lk_c27,lk_2028,fresh_smoke,per_vcpu_2_20,per_vcpu_2_20_warm}]
+              [--target {all,both,direct,agent-transport,agent-transport-python-vad,agent-transport-rust-vad,agent-transport-livekit}]
+              [--no-docker] [--direct-url DIRECT_URL] [--at-url AT_URL]
+              [--at-python-url AT_PYTHON_URL] [--at-rust-url AT_RUST_URL]
+              [--lk-url LK_URL] [--output OUTPUT]
+cli.py: error: argument --target: invalid choice: 'direct-pipecat' (choose from all, both, direct, agent-transport, agent-transport-python-vad, agent-transport-rust-vad, agent-transport-livekit)

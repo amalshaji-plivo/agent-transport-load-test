@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# OS / editor cruft
+.DS_Store
+
+# Pre-built local wheels (PyPI release is used in the Dockerfiles)
+local_wheels/
+
+# Nohup / sentinel output from benchmark runner scripts
+nohup.out
+*.exitcode
+*.done

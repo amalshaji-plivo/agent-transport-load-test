@@ -1,0 +1,127 @@
+{
+  "summaries": [
+    {
+      "implementation": "agent-transport-rust-vad",
+      "concurrency": 110,
+      "pacing_interval_sec": 0.02,
+      "total_sessions": 110,
+      "sessions_with_output": 0,
+      "jitter_eligible_sessions": 0,
+      "total_frames_sent": 0,
+      "total_frames_received": 0,
+      "output_to_input_frame_ratio": 0.0,
+      "throughput_fps": 0.0,
+      "first_frame_latency": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "post_warmup_rtt": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "rtt_latency": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "jitter": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "within_phrase_gap": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "audible_silence_gap": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "transport_delivery": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "pipeline_latency": {
+        "count": 0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std_dev": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "p90": 0.0,
+        "p95": 0.0,
+        "p99": 0.0
+      },
+      "resources": {
+        "mean_cpu": 0.0,
+        "peak_cpu": 0.0,
+        "mean_memory_mb": 0.0,
+        "peak_memory_mb": 0.0
+      }
+    }
+  ],
+  "comparisons": []
+}

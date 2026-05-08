@@ -1,0 +1,22 @@
+14:28:33 | INFO    | Benchmark profile: lk_horiz_c140
+14:28:33 | INFO    | Steps: [(140, '60s')]
+14:28:33 | INFO    | Running agent-transport-livekit | concurrency=140 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-livekit | concurrency=140 | pacing=20 ms (50 f/s ideal)
+  sessions=140 | with_output=140 | eligible=140  ← if eligible << with_output, survivorship bias is in play
+  frames: 408966 sent / 96866 recv | throughput=746.3 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.01 ms       100.14 ms
+    (max)                         180.08 ms                
+  Mean / peak CPU                        --              --
+  Within-phrase gap                27.63 ms       120.14 ms
+  Jitter (p50/p99)                  7.64 ms        92.52 ms
+  First-frame (cold)             3641.36 ms      3681.25 ms
+  Post-warmup RTT                 732.40 ms      1373.45 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory                     --              --
+Results exported to results-revalidate/at_livekit_c140_memprobe.json
