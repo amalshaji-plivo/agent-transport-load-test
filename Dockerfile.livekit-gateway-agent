@@ -1,0 +1,83 @@
+# Two-stage build:
+#   builder  — Rust + protoc + cmake; compiles the livekit-gateway workspace
+#              into a wheel (the wheel's setup.py runs `cargo build --release`
+#              and bundles the FFI .so + gateway binary inside the package).
+#   runtime  — pure-Python slim image; installs the wheel + livekit-agents
+#              + load_test bench code. No Rust toolchain in the final image.
+#
+# Build context: the workspace root (i.e. the parent of this file's directory)
+# so we can COPY livekit-gateway/ source.
+
+# ─── builder ────────────────────────────────────────────────────────────────
+FROM python:3.13-slim AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake curl pkg-config git ca-certificates unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Rust stable
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+ENV PATH=/root/.cargo/bin:$PATH
+
+# protoc for prost-build (crates/proto codegen)
+RUN ARCH=$(uname -m); \
+    case "$ARCH" in \
+        x86_64)        PROTOC_ARCH=x86_64 ;; \
+        aarch64|arm64) PROTOC_ARCH=aarch_64 ;; \
+        *) echo "unsupported arch: $ARCH"; exit 1 ;; \
+    esac; \
+    curl -fsSL -o /tmp/protoc.zip \
+        "https://github.com/protocolbuffers/protobuf/releases/download/v27.3/protoc-27.3-linux-${PROTOC_ARCH}.zip" \
+    && unzip -o /tmp/protoc.zip -d /usr/local \
+    && chmod +x /usr/local/bin/protoc
+
+RUN pip install --no-cache-dir build wheel setuptools
+
+WORKDIR /src
+# Only the bits setup.py + cargo need — keeps the build context off the
+# multi-GB `target/` dir, the FFI submodule downloads, etc.
+COPY livekit-gateway/Cargo.toml livekit-gateway/Cargo.lock ./
+COPY livekit-gateway/crates ./crates
+COPY livekit-gateway/third_party ./third_party
+COPY livekit-gateway/python ./python
+
+# Defensive: clear any host-side wheel that snuck into the context (we
+# .dockerignore **/dist now, but a previous-image cache layer might still
+# carry one). setup.py shells out to `cargo build --release` and copies
+# liblivekit_ffi.so + livekit-gateway into python/livekit_gateway/.
+RUN rm -rf python/dist python/build && python -m build --wheel python/
+
+
+# ─── runtime ────────────────────────────────────────────────────────────────
+FROM python:3.13-slim
+
+# build-essential kept here only because some Python deps fall back to source
+# on uncommon arches; harmless on prebuilt wheels.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Same agent deps as the livekit-python container so the comparison stays
+# apples-to-apples. livekit-plugins-turn-detector + EOU pre-download mirror
+# the lkp image so neither side pays HF download on the hot path.
+RUN pip install --no-cache-dir \
+    "livekit-agents>=1.5" \
+    livekit-plugins-silero \
+    livekit-plugins-turn-detector \
+    aiohttp loguru websockets uvloop \
+    fastapi uvicorn
+
+RUN python -c "from livekit.plugins.turn_detector.multilingual import _EUORunnerMultilingual; _EUORunnerMultilingual._download_files()"
+
+# Install the freshly-built livekit-gateway wheel
+COPY --from=builder /src/python/dist/*.whl /tmp/
+RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
+
+COPY agent-transport-load-test/load_test/ load_test/
+
+# Plivo-facing (bench client) + AgentServer introspection (worker liveness)
+EXPOSE 8084 8181
+
+CMD ["python", "-m", "load_test.servers.livekit_gateway_server", "start"]

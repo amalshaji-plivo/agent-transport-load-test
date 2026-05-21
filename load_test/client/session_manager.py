@@ -1,14 +1,31 @@
 """Multi-session orchestrator.
 
-Manages N concurrent PlivoWsClient instances with staggered startup
-to avoid thundering herd on the server.
+Manages N concurrent client instances with staggered startup so the
+server doesn't see a thundering herd on session zero. The client type
+is chosen by URL scheme:
+
+  ws://…                  → PlivoWsClient   (Plivo audio-stream WS)
+  livekit://…             → LivekitRtcClient (LiveKit RTC over WebRTC)
+  livekit+wss://…         → LivekitRtcClient with WSS signaling
+
+The two clients drive an equivalent workload (20 ms frames at real-time
+pace + drain) and write into the same SessionMetrics shape — so the
+downstream metrics aggregator doesn't need to know which kind ran.
 """
 
 import asyncio
 import time
 
 from load_test.client.plivo_ws_client import PlivoWsClient
+from load_test.client.livekit_rtc_client import LivekitRtcClient
 from load_test.metrics.collector import TestRunMetrics
+
+
+def _client_for_url(url: str):
+    """Pick the bench client for one URL by scheme."""
+    if url.startswith("livekit://") or url.startswith("livekit+"):
+        return LivekitRtcClient
+    return PlivoWsClient
 
 
 class SessionManager:
@@ -51,8 +68,10 @@ class SessionManager:
         for i in range(self._concurrency):
             session_id = f"{self._implementation}-session-{i}"
             sm = run_metrics.create_session(session_id)
-            client = PlivoWsClient(
-                url=self._urls[i % len(self._urls)],
+            url = self._urls[i % len(self._urls)]
+            client_cls = _client_for_url(url)
+            client = client_cls(
+                url=url,
                 session_id=session_id,
                 metrics=sm,
                 duration_sec=total_duration,

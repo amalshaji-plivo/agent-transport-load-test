@@ -1,0 +1,15 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    fastapi uvicorn aiohttp loguru websockets uvloop
+
+COPY load_test/ load_test/
+
+EXPOSE 9000
+
+# Single-process — uvloop + asyncio handles the WS/SSE fan-out fine for the
+# scale we drive in the bench. Bump --workers via MOCK_SERVICES_WORKERS env
+# if you take this to very high concurrency.
+CMD ["python", "-m", "load_test.servers.mock_services", "--port", "9000"]

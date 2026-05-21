@@ -16,7 +16,8 @@ TARGET_MAP = {
     "agent-transport": "agent-transport-rust-vad",
     "agent-transport-python-vad": "agent-transport-python-vad",
     "agent-transport-rust-vad": "agent-transport-rust-vad",
-    "agent-transport-livekit": "agent-transport-livekit",
+    "livekit-gateway": "livekit-gateway",
+    "livekit-python": "livekit-python",
 }
 
 # Shorthand multi-target groups
@@ -27,6 +28,10 @@ TARGET_GROUPS = {
         "agent-transport-python-vad",
         "agent-transport-rust-vad",
     ],
+    # Stock livekit-agents (over a LiveKit SFU) vs livekit-gateway head-to-head.
+    # Both sides run the same AgentSession pipeline with the same wire-mock
+    # STT/LLM/TTS; only the transport layer differs.
+    "lkp-vs-lkg": ["livekit-python", "livekit-gateway"],
 }
 
 
@@ -66,11 +71,13 @@ Examples:
         choices=[
             "all",
             "both",
+            "lkp-vs-lkg",
             "direct",
             "agent-transport",
             "agent-transport-python-vad",
             "agent-transport-rust-vad",
-            "agent-transport-livekit",
+            "livekit-gateway",
+            "livekit-python",
         ],
         default="both",
         help="Which server(s) to test (default: both)",
@@ -79,6 +86,14 @@ Examples:
         "--no-docker",
         action="store_true",
         help="Skip Docker compose — connect to already-running servers",
+    )
+    parser.add_argument(
+        "--docker-container",
+        default=None,
+        help="Pass through a container name so resource stats come from "
+             "`docker stats <name>` instead of psutil-on-host. Useful when "
+             "the agent runs in a container but compose lifecycle is managed "
+             "externally (e.g. by a sweep script).",
     )
     parser.add_argument(
         "--direct-url",
@@ -101,10 +116,17 @@ Examples:
         help="WebSocket URL for agent-transport Rust-VAD server (default: ws://localhost:8082)",
     )
     parser.add_argument(
-        "--lk-url",
+        "--lkg-url",
         default=None,
-        help="WebSocket URL(s) for agent-transport-livekit server (comma-separated for "
-             "round-robin routing across a horizontal topology; default: ws://localhost:8083)",
+        help="WebSocket URL(s) for livekit-gateway server (comma-separated for "
+             "round-robin routing across a horizontal topology; default: ws://localhost:8084)",
+    )
+    parser.add_argument(
+        "--lkp-url",
+        default=None,
+        help="LiveKit SFU URL for the livekit-python target — speaks LiveKit RTC "
+             "(WebRTC + WS signaling). Format: livekit://host:port[?key=…&secret=…] "
+             "(default: livekit://localhost:7880).",
     )
     parser.add_argument(
         "--output",
@@ -115,7 +137,7 @@ Examples:
     args = parser.parse_args()
 
     # Allow comma-separated URLs for round-robin across a horizontal deploy.
-    for attr in ("lk_url", "at_url", "at_python_url", "at_rust_url", "direct_url"):
+    for attr in ("lkg_url", "lkp_url", "at_url", "at_python_url", "at_rust_url", "direct_url"):
         val = getattr(args, attr, None)
         if isinstance(val, str) and "," in val:
             setattr(args, attr, [u.strip() for u in val.split(",") if u.strip()])
@@ -153,7 +175,8 @@ Examples:
                 direct_url=args.direct_url,
                 at_python_url=args.at_python_url,
                 at_rust_url=args.at_rust_url or args.at_url,
-                lk_url=args.lk_url,
+                lkg_url=args.lkg_url,
+                lkp_url=args.lkp_url,
                 targets=targets,
                 use_docker=use_docker,
             )
@@ -180,10 +203,15 @@ Examples:
                 "agent-transport-rust-vad",
                 8082,
             ),
-            "agent-transport-livekit": (
-                args.lk_url or "ws://localhost:8083",
-                "agent-transport-livekit",
-                8083,
+            "livekit-gateway": (
+                args.lkg_url or "ws://localhost:8084",
+                "livekit-gateway",
+                8084,
+            ),
+            "livekit-python": (
+                args.lkp_url or "livekit://localhost:7880",
+                "livekit-python",
+                7880,
             ),
         }
         url, service_name, service_port = url_map[impl_name]
@@ -197,6 +225,7 @@ Examples:
                 url=url,
                 implementation=impl_name,
                 profile=profile,
+                container_name=args.docker_container,
                 service_name=service_name if (use_docker and not is_horizontal) else None,
                 service_port=service_port if (use_docker and not is_horizontal) else None,
                 project_dir=single_project_dir,

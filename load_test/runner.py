@@ -30,29 +30,35 @@ from load_test.report import print_comparison, print_single_summary
 DIRECT_CONTAINER = "agent-transport-load-test-direct-pipecat-1"
 AT_PY_CONTAINER = "agent-transport-load-test-agent-transport-python-vad-1"
 AT_RUST_CONTAINER = "agent-transport-load-test-agent-transport-rust-vad-1"
-LK_CONTAINER = "agent-transport-load-test-agent-transport-livekit-1"
+LKG_CONTAINER = "agent-transport-load-test-livekit-gateway-1"
+LKP_CONTAINER = "agent-transport-load-test-livekit-python-1"
 
 # Compose service names (distinct from container names, which have -1 suffix)
 DIRECT_SERVICE = "direct-pipecat"
 AT_PY_SERVICE = "agent-transport-python-vad"
 AT_RUST_SERVICE = "agent-transport-rust-vad"
-LK_SERVICE = "agent-transport-livekit"
+LKG_SERVICE = "livekit-gateway"
+LKP_SERVICE = "livekit-python"
 
 DIRECT_PORT = 8080
 AT_PY_PORT = 8081
 AT_RUST_PORT = 8082
-LK_PORT = 8083
+LKG_PORT = 8084   # Plivo-facing port for the livekit-gateway server
+LKP_PORT = 7880   # LiveKit Server (SFU) signaling port — psutil monitor binds here
 
 # Per-implementation output pacing interval (seconds between adjacent frames on
 # the wire). Used to derive `audible_silence_gap` and to pick the rate-based
 # survivorship threshold in summarize_run.
-#   direct-pipecat: pipecat batches at 40 ms by default
-#   agent-transport (both variants): Rust tokio::time::interval at 20 ms
+#   direct-pipecat:  pipecat batches at 40 ms by default
+#   agent-transport (both VAD variants): Rust tokio::time::interval at 20 ms
+#   livekit-gateway: Rust tokio pacer at 20 ms
+#   livekit-python:  WebRTC Opus at 20 ms per packet
 PACING_INTERVAL_BY_IMPL: dict[str, float] = {
     "direct-pipecat": 0.040,
     "agent-transport-python-vad": 0.020,
     "agent-transport-rust-vad": 0.020,
-    "agent-transport-livekit": 0.020,
+    "livekit-gateway": 0.020,
+    "livekit-python": 0.020,
 }
 
 
@@ -291,7 +297,8 @@ async def run_comparison(
     direct_url: str | None = None,
     at_python_url: str | None = None,
     at_rust_url: str | None = None,
-    lk_url: str | None = None,
+    lkg_url: str | None = None,
+    lkp_url: str | None = None,
     targets: list[str] | None = None,
     use_docker: bool = True,
 ) -> tuple[dict[str, list[RunSummary]], list[ComparisonResult]]:
@@ -330,12 +337,19 @@ async def run_comparison(
             AT_RUST_SERVICE,
             "Agent-Transport + Rust VAD",
         ),
-        "agent-transport-livekit": (
-            lk_url or f"ws://localhost:{LK_PORT}",
-            LK_CONTAINER,
-            LK_PORT,
-            LK_SERVICE,
-            "Agent-Transport + LiveKit",
+        "livekit-gateway": (
+            lkg_url or f"ws://localhost:{LKG_PORT}",
+            LKG_CONTAINER,
+            LKG_PORT,
+            LKG_SERVICE,
+            "livekit-gateway",
+        ),
+        "livekit-python": (
+            lkp_url or f"livekit://localhost:{LKP_PORT}",
+            LKP_CONTAINER,
+            LKP_PORT,
+            LKP_SERVICE,
+            "livekit-python (stock LiveKit SFU)",
         ),
     }
 
@@ -366,7 +380,7 @@ async def run_comparison(
                 implementation=impl_name,
                 profile=profile,
                 container_name=container if use_docker else None,
-                monitor_port=None if use_docker else _port_for_local_monitor(url),
+                monitor_port=None if use_docker else _port_for_local_monitor(url, impl_name),
                 service_name=service if use_docker else None,
                 service_port=port if use_docker else None,
                 project_dir=project_dir if use_docker else None,
@@ -406,14 +420,29 @@ async def run_single_target(
         implementation=implementation,
         profile=profile,
         container_name=container_name,
-        monitor_port=None if container_name else _port_for_local_monitor(url),
+        monitor_port=None if container_name else _port_for_local_monitor(url, implementation),
         service_name=service_name,
         service_port=service_port,
         project_dir=project_dir,
     )
 
 
-def _port_for_local_monitor(url: str | list[str]) -> int | None:
+# For impls whose bench URL doesn't map 1:1 to the process under test, point
+# the host-side psutil monitor at the *agent process* (not the transport
+# layer). This isolates "agent cost" — the livekit-agents Python pipeline
+# we're load-testing — from the surrounding transport's cost (LiveKit SFU
+# for lkp, livekit-gateway Rust binary for lkg), both of which exist for
+# both targets in some form. PsutilMonitor walks the process tree, so the
+# AgentServer's per-job forked children are included.
+_AGENT_MONITOR_PORT_BY_IMPL: dict[str, int] = {
+    "livekit-python": 8281,   # AGENT_SERVER_HTTP_PORT in livekit_python_server.py
+    "livekit-gateway": 8181,  # AGENT_SERVER_HTTP_PORT in livekit_gateway_server.py
+}
+
+
+def _port_for_local_monitor(
+    url: str | list[str], implementation: str | None = None
+) -> int | None:
     """Return the port for localhost targets so we can attach a psutil monitor.
 
     For multi-URL round-robin (horizontal topology), the harness has no single
@@ -422,7 +451,13 @@ def _port_for_local_monitor(url: str | list[str]) -> int | None:
     """
     if isinstance(url, list):
         return None
+    if implementation in _AGENT_MONITOR_PORT_BY_IMPL:
+        return _AGENT_MONITOR_PORT_BY_IMPL[implementation]
     parsed = urlparse(url)
+    # livekit:// URLs point at a LiveKit SFU and not the agent process, so
+    # the URL port is useless for monitoring; fall back to None.
+    if parsed.scheme in ("livekit", "livekit+ws", "livekit+wss", "livekit-tls"):
+        return None
     if parsed.hostname not in {"localhost", "127.0.0.1", "0.0.0.0"}:
         return None
     return parsed.port

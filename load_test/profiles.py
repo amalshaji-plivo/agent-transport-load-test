@@ -33,6 +33,58 @@ PROFILES: dict[str, LoadProfile] = {
         LoadStep(concurrency=10, duration_sec=30, ramp_delay=0.2),
         LoadStep(concurrency=25, duration_sec=30, ramp_delay=0.1),
     ]),
+    # 4-step sweep for the lkp-vs-lkg comparison. 30 s of measurement per
+    # step with a 10 s warmup so we cover the connect ramp (0.5 s × c) without
+    # measuring it. Ramp delays kept generous (0.5 s) — WebRTC DTLS does NOT
+    # like 20 parallel handshakes against a single SFU UDP port; gentle
+    # staggering avoids the "wait_pc_connection timed out" failure mode we
+    # saw at c=20 with a 70 ms ramp.
+    "c5_10_15_20": LoadProfile("c5_10_15_20", [
+        LoadStep(concurrency=5,  duration_sec=30, ramp_delay=0.5, warmup_sec=10),
+        LoadStep(concurrency=10, duration_sec=30, ramp_delay=0.5, warmup_sec=10),
+        LoadStep(concurrency=15, duration_sec=30, ramp_delay=0.5, warmup_sec=10),
+        LoadStep(concurrency=20, duration_sec=30, ramp_delay=0.5, warmup_sec=15),
+    ]),
+    # Single-c profiles so the harness can sweep one level at a time, with
+    # fresh agent processes between levels (avoids prior-step heap pressure
+    # bleeding into the next reading).
+    #
+    # Two rules drive warmup_sec and ramp_delay:
+    #   1) warmup_sec ≳ c × ramp_delay + 5 — first sample only after every
+    #      session has finished ramping (otherwise mid-ramp transients alias
+    #      into the steady-state percentiles).
+    #   2) ramp_delay scales up for c ≥ 25 — the LiveKit Python client's
+    #      WebRTC DTLS handshake against a single SFU UDP port doesn't scale
+    #      to 20+ simultaneous handshakes; spreading them out (0.7 s for
+    #      c ≥ 25, 1.0 s for c ≥ 40) keeps the failure rate under control.
+    "c2":  LoadProfile("c2",  [LoadStep(concurrency=2,  duration_sec=30, ramp_delay=0.5, warmup_sec=10)]),
+    "c5":  LoadProfile("c5",  [LoadStep(concurrency=5,  duration_sec=30, ramp_delay=0.5, warmup_sec=10)]),
+    "c8":  LoadProfile("c8",  [LoadStep(concurrency=8,  duration_sec=30, ramp_delay=0.5, warmup_sec=10)]),
+    "c10": LoadProfile("c10", [LoadStep(concurrency=10, duration_sec=30, ramp_delay=0.5, warmup_sec=10)]),
+    "c11": LoadProfile("c11", [LoadStep(concurrency=11, duration_sec=30, ramp_delay=0.5, warmup_sec=12)]),
+    "c14": LoadProfile("c14", [LoadStep(concurrency=14, duration_sec=30, ramp_delay=0.5, warmup_sec=12)]),
+    "c15": LoadProfile("c15", [LoadStep(concurrency=15, duration_sec=30, ramp_delay=0.5, warmup_sec=12)]),
+    "c17": LoadProfile("c17", [LoadStep(concurrency=17, duration_sec=30, ramp_delay=0.5, warmup_sec=14)]),
+    "c20": LoadProfile("c20", [LoadStep(concurrency=20, duration_sec=30, ramp_delay=0.5, warmup_sec=15)]),
+    "c25": LoadProfile("c25", [LoadStep(concurrency=25, duration_sec=30, ramp_delay=0.7, warmup_sec=25)]),
+    "c30": LoadProfile("c30", [LoadStep(concurrency=30, duration_sec=30, ramp_delay=0.7, warmup_sec=27)]),
+    "c35": LoadProfile("c35", [LoadStep(concurrency=35, duration_sec=30, ramp_delay=0.8, warmup_sec=33)]),
+    "c40": LoadProfile("c40", [LoadStep(concurrency=40, duration_sec=30, ramp_delay=1.0, warmup_sec=45)]),
+    "c45": LoadProfile("c45", [LoadStep(concurrency=45, duration_sec=30, ramp_delay=1.0, warmup_sec=50)]),
+    "c50": LoadProfile("c50", [LoadStep(concurrency=50, duration_sec=30, ramp_delay=1.0, warmup_sec=55)]),
+    # ── lkg-only high-c profiles ───────────────────────────────────────────
+    # lkg doesn't have WebRTC, so we don't need long ramps to spread DTLS
+    # handshakes. Use ramp_delay=0.1 to fill the bench fast and keep step
+    # time bounded.
+    "lkg_c75":  LoadProfile("lkg_c75",  [LoadStep(concurrency=75,  duration_sec=30, ramp_delay=0.1, warmup_sec=15)]),
+    "lkg_c100": LoadProfile("lkg_c100", [LoadStep(concurrency=100, duration_sec=30, ramp_delay=0.1, warmup_sec=20)]),
+    "lkg_c125": LoadProfile("lkg_c125", [LoadStep(concurrency=125, duration_sec=30, ramp_delay=0.1, warmup_sec=20)]),
+    "lkg_c150": LoadProfile("lkg_c150", [LoadStep(concurrency=150, duration_sec=30, ramp_delay=0.1, warmup_sec=25)]),
+    "lkg_c200": LoadProfile("lkg_c200", [LoadStep(concurrency=200, duration_sec=30, ramp_delay=0.1, warmup_sec=30)]),
+    # s2 (VAD+TD) — longer ramp since per-worker prewarm is heavier
+    "lkg_s2_c30": LoadProfile("lkg_s2_c30", [LoadStep(concurrency=30, duration_sec=30, ramp_delay=0.3, warmup_sec=15)]),
+    "lkg_s2_c40": LoadProfile("lkg_s2_c40", [LoadStep(concurrency=40, duration_sec=30, ramp_delay=0.3, warmup_sec=20)]),
+    "lkg_s2_c50": LoadProfile("lkg_s2_c50", [LoadStep(concurrency=50, duration_sec=30, ramp_delay=0.3, warmup_sec=20)]),
     "heavy": LoadProfile("heavy", [
         LoadStep(concurrency=10, duration_sec=20, ramp_delay=0.1),
         LoadStep(concurrency=25, duration_sec=30, ramp_delay=0.1),

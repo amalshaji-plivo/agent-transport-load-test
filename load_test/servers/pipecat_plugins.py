@@ -1,19 +1,27 @@
-"""Mock pipecat services for benchmarking.
+"""Mock pipecat services for benchmarking — talk to wire-mock backends.
 
-Timing matches the LiveKit mock plugins so pipeline latency is comparable
-across the benchmark targets:
+Each plugin connects to the real STT/LLM/TTS endpoints exposed by
+`load_test.servers.mock_services` over real WebSocket / HTTP. The
+inline `asyncio.sleep` shims that previously simulated the timing
+have been removed: real socket I/O now provides the same back-pressure
+the production code would see against Deepgram / OpenAI / etc.
 
-  STT:  streaming audio, final transcript after end-of-turn (~200ms processing)
-  LLM:  150ms TTFT, then ~15 tokens at 40ms each — fully inline (no HTTP)
-  TTS:  80ms TTFB, then streams ~600ms of audio in 20ms chunks
+Endpoint timings (set in `mock_services.py`):
+  STT:  partials every 200ms, final after 100 frames (~2s) of audio.
+  LLM:  150 ms time-to-first-token, ~25 tok/s thereafter.
+  TTS:  80 ms time-to-first-chunk, 20 ms between chunks, ~600 ms total.
 """
+
+from __future__ import annotations
 
 import asyncio
 import io
-import math
+import json
 import struct
 import wave
 from typing import AsyncGenerator
+
+import aiohttp
 
 from pipecat.frames.frames import (
     AudioRawFrame,
@@ -34,35 +42,21 @@ from pipecat.services.llm_service import LLMService
 from pipecat.services.stt_service import SegmentedSTTService
 from pipecat.services.tts_service import TTSService
 
-# Timing constants
-STT_PROCESSING_DELAY = 0.2
-TTS_FIRST_CHUNK_MS = 0.08
-TTS_CHUNK_INTERVAL = 0.02
+from load_test.servers.mock_clients import (
+    llm_stream_tokens,
+    stt_url,
+    tts_url,
+)
+
+# Constants kept here for documentation / external references; the actual
+# timings live in mock_services.py.
 TTS_SAMPLE_RATE = 8000
 TTS_NUM_CHANNELS = 1
-
-PHRASES = [
-    "hello how are you",
-    "I need help with my account",
-    "can you transfer me to billing",
-    "thank you very much",
-    "yes that sounds good",
-]
-
-RESPONSES = [
-    "Hello! I'd be happy to help you with that. Let me look into your account right away.",
-    "Sure, I can transfer you to our billing department. Please hold for just a moment.",
-    "Thank you for calling. Is there anything else I can help you with today?",
-    "I understand your concern. Let me check the details and get back to you shortly.",
-    "That's a great question. The answer is that we offer several options for your needs.",
-]
-
-LLM_FIRST_TOKEN_S = 0.15
-LLM_TOKEN_INTERVAL_S = 0.04
 
 _FALLBACK_MIN_SPEECH_FRAMES = 8
 _FALLBACK_END_SILENCE_FRAMES = 25
 _FALLBACK_VOICED_RMS = 700.0
+_AUDIO_CHUNK_BYTES = 320  # 20 ms PCM16 LE at 8 kHz
 
 
 def _pcm_rms(audio: bytes) -> float:
@@ -74,21 +68,32 @@ def _pcm_rms(audio: bytes) -> float:
     return energy ** 0.5
 
 
+# ── STT: wire-talking ────────────────────────────────────────────────────────
 class BenchPipecatSTT(SegmentedSTTService):
-    """Mock segmented STT driven by speech-stop events.
+    """Mock segmented STT — sends the buffered turn over WS to the mock STT
+    service and waits for the final transcript.
 
-    When upstream VAD is present we finalize only on VAD stop. For no-VAD paths,
-    we fall back to simple RMS-based speech/silence detection so the transcript
-    timing still follows utterance boundaries instead of a fixed frame counter.
+    The VAD-fallback turn detection is unchanged from the inline version;
+    only the actual "STT call" is over the wire now.
     """
 
     def __init__(self) -> None:
-        super().__init__(sample_rate=8000, ttfs_p99_latency=0.25)
-        self._phrase_idx = 0
+        super().__init__(sample_rate=8000, ttfs_p99_latency=0.5)
         self._saw_upstream_vad = False
         self._fallback_voiced_frames = 0
         self._fallback_silence_frames = 0
         self._fallback_turn_started = False
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def cleanup(self) -> None:
+        if self._session is not None and not self._session.closed:
+            await self._session.close()
+        await super().cleanup()
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         if isinstance(frame, (VADUserStartedSpeakingFrame, VADUserStoppedSpeakingFrame)):
@@ -154,55 +159,125 @@ class BenchPipecatSTT(SegmentedSTTService):
         if not audio:
             return
 
-        await asyncio.sleep(STT_PROCESSING_DELAY)
-        text = PHRASES[self._phrase_idx % len(PHRASES)]
-        self._phrase_idx += 1
-        yield TranscriptionFrame(
-            text=text,
-            user_id="bench-user",
-            timestamp="",
-            finalized=True,
-        )
+        session = await self._get_session()
+        # WAV header is 44 bytes — skip it so we only ship PCM payload.
+        pcm = audio[44:] if audio[:4] == b"RIFF" else audio
+        transcript_text = ""
+
+        try:
+            async with session.ws_connect(stt_url(), heartbeat=None) as ws:
+                # Stream the audio in 20 ms chunks so the mock sees a
+                # production-shaped frame cadence rather than one giant blob.
+                for i in range(0, len(pcm), _AUDIO_CHUNK_BYTES):
+                    await ws.send_bytes(pcm[i : i + _AUDIO_CHUNK_BYTES])
+                # Tell the mock the utterance is done.
+                await ws.send_str(json.dumps({"type": "Finalize"}))
+
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        try:
+                            obj = json.loads(msg.data)
+                        except json.JSONDecodeError:
+                            continue
+                        if obj.get("type") != "Results":
+                            continue
+                        if not obj.get("is_final"):
+                            continue
+                        alts = obj.get("channel", {}).get("alternatives", [])
+                        if alts:
+                            transcript_text = alts[0].get("transcript", "")
+                        break
+                    elif msg.type in (
+                        aiohttp.WSMsgType.CLOSED,
+                        aiohttp.WSMsgType.ERROR,
+                    ):
+                        break
+        except (aiohttp.ClientError, asyncio.TimeoutError):  # noqa: F821
+            transcript_text = ""
+
+        if transcript_text:
+            yield TranscriptionFrame(
+                text=transcript_text,
+                user_id="bench-user",
+                timestamp="",
+                finalized=True,
+            )
 
 
-_SAMPLES_PER_CHUNK = TTS_SAMPLE_RATE // 50
-_SINE_CHUNK = struct.pack(
-    f"<{_SAMPLES_PER_CHUNK}h",
-    *[int(16000 * math.sin(2 * math.pi * 440 * i / TTS_SAMPLE_RATE))
-      for i in range(_SAMPLES_PER_CHUNK)]
-)
-
-
+# ── TTS: wire-talking ────────────────────────────────────────────────────────
 class BenchPipecatTTS(TTSService):
-    """Mock TTS that streams audio chunks with realistic timing."""
+    """Mock TTS — opens a WS to the mock TTS service per phrase and streams
+    audio chunks back.
+    """
 
     def __init__(self) -> None:
         super().__init__(sample_rate=TTS_SAMPLE_RATE)
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def cleanup(self) -> None:
+        if self._session is not None and not self._session.closed:
+            await self._session.close()
+        await super().cleanup()
 
     async def run_tts(self, text: str, context_id: str) -> AsyncGenerator[Frame, None]:
         yield TTSStartedFrame(context_id=context_id)
 
-        n_chunks = max(10, min(30, len(text) // 2))
-        await asyncio.sleep(TTS_FIRST_CHUNK_MS)
-
-        for _ in range(n_chunks):
-            yield TTSAudioRawFrame(
-                audio=_SINE_CHUNK,
-                sample_rate=TTS_SAMPLE_RATE,
-                num_channels=TTS_NUM_CHANNELS,
-                context_id=context_id,
-            )
-            await asyncio.sleep(TTS_CHUNK_INTERVAL)
+        session = await self._get_session()
+        try:
+            async with session.ws_connect(tts_url(), heartbeat=None) as ws:
+                await ws.send_str(
+                    json.dumps({"text": text, "sample_rate": TTS_SAMPLE_RATE})
+                )
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.BINARY:
+                        yield TTSAudioRawFrame(
+                            audio=msg.data,
+                            sample_rate=TTS_SAMPLE_RATE,
+                            num_channels=TTS_NUM_CHANNELS,
+                            context_id=context_id,
+                        )
+                    elif msg.type == aiohttp.WSMsgType.TEXT:
+                        try:
+                            obj = json.loads(msg.data)
+                        except json.JSONDecodeError:
+                            continue
+                        if obj.get("event") == "done":
+                            break
+                    elif msg.type in (
+                        aiohttp.WSMsgType.CLOSED,
+                        aiohttp.WSMsgType.ERROR,
+                    ):
+                        break
+        except (aiohttp.ClientError, asyncio.TimeoutError):  # noqa: F821
+            pass
 
         yield TTSStoppedFrame(context_id=context_id)
 
 
+# ── LLM: wire-talking ────────────────────────────────────────────────────────
 class BenchPipecatLLM(LLMService):
-    """Mock LLM service that streams canned responses token-by-token."""
+    """Mock LLM — POSTs to the mock /v1/chat/completions endpoint and
+    streams content tokens as LLMTextFrame.
+    """
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._response_idx = 0
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def cleanup(self) -> None:
+        if self._session is not None and not self._session.closed:
+            await self._session.close()
+        await super().cleanup()
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -212,7 +287,7 @@ class BenchPipecatLLM(LLMService):
             await self.start_ttfb_metrics()
             await self.start_processing_metrics()
             try:
-                await self._stream_canned_response()
+                await self._stream_response(frame)
             finally:
                 await self.stop_processing_metrics()
                 await self.stop_ttfb_metrics()
@@ -220,17 +295,33 @@ class BenchPipecatLLM(LLMService):
         else:
             await self.push_frame(frame, direction)
 
-    async def _stream_canned_response(self) -> None:
-        response = RESPONSES[self._response_idx % len(RESPONSES)]
-        self._response_idx += 1
+    async def _stream_response(self, frame: LLMContextFrame) -> None:
+        ctx = frame.context
+        messages: list[dict] = []
+        # pipecat's LLMContext exposes `.messages` (list of dicts already in
+        # OpenAI shape). Fall back to .get_messages() if .messages is absent.
+        if hasattr(ctx, "messages") and isinstance(ctx.messages, list):
+            for m in ctx.messages:
+                if isinstance(m, dict):
+                    messages.append({
+                        "role": m.get("role", "user"),
+                        "content": str(m.get("content", "")),
+                    })
+        elif hasattr(ctx, "get_messages"):
+            for m in ctx.get_messages():
+                messages.append({
+                    "role": getattr(m, "role", "user"),
+                    "content": str(getattr(m, "content", "")),
+                })
+        # Ensure at least one user message exists (some pipecat flows defer
+        # context population until after the first user turn).
+        if not messages:
+            messages = [{"role": "user", "content": "hello"}]
 
-        await asyncio.sleep(LLM_FIRST_TOKEN_S)
-
-        tokens = response.split()
         first = True
-        for token in tokens:
+        session = await self._get_session()
+        async for token in llm_stream_tokens(messages, session=session):
             if first:
                 await self.stop_ttfb_metrics()
                 first = False
-            await self.push_frame(LLMTextFrame(token + " "))
-            await asyncio.sleep(LLM_TOKEN_INTERVAL_S)
+            await self.push_frame(LLMTextFrame(token))

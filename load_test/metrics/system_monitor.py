@@ -81,33 +81,72 @@ class DockerStatsMonitor(SystemMonitor):
 
 @dataclass
 class PsutilMonitor(SystemMonitor):
-    """Collects CPU/memory from a local process via psutil."""
+    """Collects CPU/memory from a local process tree via psutil.
+
+    Tracks the root PID plus all descendants and reports their summed
+    CPU% and RSS. livekit-agents (and the AT framework) fork worker
+    children per job; if we only sampled the parent, we'd undercount
+    actual server load. The Rust livekit-gateway binary has no
+    children, so tree-aggregation is a no-op for it — keeping the
+    behaviour symmetric across targets.
+    """
 
     pid: int = 0
+    include_children: bool = True
 
     def _collect_loop(self):
         import psutil
         try:
-            proc = psutil.Process(self.pid)
+            root = psutil.Process(self.pid)
         except psutil.NoSuchProcess:
             return
 
-        # Prime cpu_percent
-        proc.cpu_percent()
+        # Prime cpu_percent for the root + initial children
+        root.cpu_percent()
+        primed = {root.pid: root}
+        if self.include_children:
+            try:
+                for ch in root.children(recursive=True):
+                    primed[ch.pid] = ch
+                    ch.cpu_percent()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
         self._stop_event.wait(self.interval)
 
         while not self._stop_event.is_set():
+            cpu_total = 0.0
+            mem_total = 0.0
+
+            # Refresh the descendant set every tick — workers come and go.
+            current: dict[int, "psutil.Process"] = {}
             try:
-                cpu = proc.cpu_percent()
-                mem = proc.memory_info().rss / (1024 * 1024)
-                self.snapshots.append(ResourceSnapshot(
-                    timestamp=time.monotonic(),
-                    cpu_percent=cpu,
-                    memory_mb=mem,
-                    active_sessions=0,
-                ))
-            except psutil.NoSuchProcess:
+                current[root.pid] = root
+                if self.include_children:
+                    for ch in root.children(recursive=True):
+                        current[ch.pid] = ch
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 break
+
+            for pid, proc in current.items():
+                try:
+                    if pid not in primed:
+                        # First sample for this new child — prime, skip cpu
+                        proc.cpu_percent()
+                        primed[pid] = proc
+                        mem_total += proc.memory_info().rss / (1024 * 1024)
+                        continue
+                    cpu_total += proc.cpu_percent()
+                    mem_total += proc.memory_info().rss / (1024 * 1024)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    primed.pop(pid, None)
+                    continue
+
+            self.snapshots.append(ResourceSnapshot(
+                timestamp=time.monotonic(),
+                cpu_percent=cpu_total,
+                memory_mb=mem_total,
+                active_sessions=0,
+            ))
 
             self._stop_event.wait(self.interval)
 
