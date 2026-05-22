@@ -16,7 +16,8 @@ RUN pip install --no-cache-dir \
     livekit-plugins-silero \
     livekit-plugins-turn-detector \
     aiohttp loguru websockets uvloop \
-    fastapi uvicorn
+    fastapi uvicorn \
+    py-spy
 
 RUN python -c "from livekit.plugins.turn_detector.multilingual import _EUORunnerMultilingual; _EUORunnerMultilingual._download_files()"
 
