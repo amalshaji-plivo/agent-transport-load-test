@@ -5,9 +5,8 @@ already in `agent-transport-load-test/load_test/servers/livekit_{python,gateway}
 
 ## Files to push
 
-- `agent-transport-load-test/` — bench client, mock services, agent server entrypoints
-- `livekit-gateway/` — Rust source for the gateway image build
-- `docker-compose.lkp-vs-lkg.yml` — the bench compose stack
+- `agent-transport-load-test/` — bench client, mock services, agent server entrypoints (the compose file lives inside this dir)
+- `livekit-gateway/` — Rust source for the gateway image build, must be a sibling of `agent-transport-load-test/`
 
 ## Config
 
@@ -22,7 +21,7 @@ already in `agent-transport-load-test/load_test/servers/livekit_{python,gateway}
 
 ## Build
 
-From the workspace root:
+From inside `agent-transport-load-test/`:
 
 ```bash
 HOST_IP=$(hostname -I | awk '{print $1}') \
@@ -38,9 +37,9 @@ Save as `~/sweep_s2_idle20.sh` (path-portable; uses `$HOME` instead of macOS pat
 #!/bin/bash
 set -uo pipefail
 
-COMPOSE_FILE=$HOME/agent-stack-workspace/docker-compose.lkp-vs-lkg.yml
-PROJECT_DIR=$HOME/agent-stack-workspace
 WORK_DIR=$HOME/agent-stack-workspace/agent-transport-load-test
+COMPOSE_FILE=$WORK_DIR/docker-compose.lkp-vs-lkg.yml
+PROJECT_DIR=$WORK_DIR
 OUT_DIR=$HOME/bench-out
 METRICS_DIR=$OUT_DIR/agent-metrics
 LOG=$OUT_DIR/sweep.log

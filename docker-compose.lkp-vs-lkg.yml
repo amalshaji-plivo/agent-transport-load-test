@@ -1,0 +1,112 @@
+# Apples-to-apples bench stack for livekit-python (stock LK SFU) vs
+# livekit-gateway. Agent containers are pinned to 4 vCPU / 10 GB so the
+# transport-layer comparison runs against an equal CPU/memory budget on
+# both sides.
+#
+# Bench client is host-side (`python -m load_test.cli ...`) and connects via
+# the published host ports. WebRTC ICE candidates resolve through HOST_IP
+# (the docker host's LAN IP), which is reachable both from the host bench
+# client and from the agent container.
+#
+# Build paths are relative to this file's directory (agent-transport-load-test/).
+# The livekit-gateway-agent image climbs to the parent directory for its
+# build context so it can COPY both the sibling livekit-gateway/ source tree
+# and this directory's load_test/ bench server code.
+
+services:
+  mock-services:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock-services
+    image: lkp-vs-lkg/mock-services:latest
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:9000/healthz\")'"]
+      interval: 3s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  livekit-server:
+    image: livekit/livekit-server:latest
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    volumes:
+      - ./docker/livekit.yaml:/etc/livekit.yaml:ro
+    command:
+      - "--dev"
+      - "--config"
+      - "/etc/livekit.yaml"
+      - "--node-ip"
+      - "${HOST_IP:?HOST_IP env var required (host LAN IP for WebRTC ICE)}"
+
+  livekit-python-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.livekit-python-agent
+    image: lkp-vs-lkg/lkp-agent:latest
+    environment:
+      LIVEKIT_URL: ws://livekit-server:7880
+      LIVEKIT_API_KEY: devkey
+      LIVEKIT_API_SECRET: secret
+      MOCK_SERVICES_HOST: mock-services:9000
+      AGENT_SERVER_HTTP_PORT: "8281"
+      NUM_IDLE_PROCESSES: "${NUM_IDLE_PROCESSES:-22}"
+      ENABLE_VAD: "${ENABLE_VAD:-false}"
+      ENABLE_TURN_DETECTOR: "${ENABLE_TURN_DETECTOR:-false}"
+      AGENT_METRICS_LOG: /agent-metrics/lkp.jsonl
+    ports:
+      - "8281:8281"
+    cpus: "${CPU_LIMIT:-4.0}"
+    mem_limit: "${MEM_LIMIT:-10G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT:-4.0}"
+          memory: "${MEM_LIMIT:-10G}"
+    volumes:
+      - ${AGENT_METRICS_DIR:-/tmp/lkg-bench/agent-metrics}:/agent-metrics
+    cap_add:
+      - SYS_PTRACE   # required by py-spy to attach to the worker tree
+    depends_on:
+      mock-services:
+        condition: service_healthy
+      livekit-server:
+        condition: service_started
+
+  livekit-gateway-agent:
+    build:
+      context: ..
+      dockerfile: agent-transport-load-test/Dockerfile.livekit-gateway-agent
+    image: lkp-vs-lkg/lkg-agent:latest
+    environment:
+      PLIVO_WS_ADDR: 0.0.0.0:8084
+      LIVEKIT_AGENT_WS_ADDR: 0.0.0.0:7884
+      PLIVO_PUBLIC_HOST: localhost:8084
+      LKG_GATEWAY_LOG: /tmp/lkg_gateway.log
+      MOCK_SERVICES_HOST: mock-services:9000
+      AGENT_SERVER_HTTP_PORT: "8181"
+      NUM_IDLE_PROCESSES: "${NUM_IDLE_PROCESSES:-22}"
+      ENABLE_VAD: "${ENABLE_VAD:-false}"
+      ENABLE_TURN_DETECTOR: "${ENABLE_TURN_DETECTOR:-false}"
+      AGENT_METRICS_LOG: /agent-metrics/lkg.jsonl
+    ports:
+      - "8084:8084"
+      - "8181:8181"
+    cpus: "${CPU_LIMIT:-4.0}"
+    mem_limit: "${MEM_LIMIT:-10G}"
+    deploy:
+      resources:
+        limits:
+          cpus: "${CPU_LIMIT:-4.0}"
+          memory: "${MEM_LIMIT:-10G}"
+    volumes:
+      - ${AGENT_METRICS_DIR:-/tmp/lkg-bench/agent-metrics}:/agent-metrics
+    cap_add:
+      - SYS_PTRACE   # required by py-spy to attach to the worker tree
+    depends_on:
+      mock-services:
+        condition: service_healthy
