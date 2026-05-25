@@ -90,8 +90,8 @@ def prewarm(proc: JobProcess) -> None:
     not plugin-load latency."""
     if ENABLE_VAD:
         from livekit.plugins import silero
-        logger.info("Pre-loading Silero VAD model...")
-        proc.userdata["vad"] = silero.VAD.load()
+        logger.info("Pre-loading Silero VAD model (8 kHz)...")
+        proc.userdata["vad"] = silero.VAD.load(sample_rate=8000)
     else:
         proc.userdata["vad"] = None
         logger.info("VAD disabled (ENABLE_VAD=false)")
