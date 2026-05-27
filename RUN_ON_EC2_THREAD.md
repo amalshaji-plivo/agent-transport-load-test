@@ -83,11 +83,15 @@ From inside `agent-transport-load-test/`:
 ```bash
 export HOST_IP=$(hostname -I | awk '{print $1}')
 docker compose -f docker-compose.lkp-vs-lkg.yml build livekit-gateway-agent mock-services
-python -m venv .venv && .venv/bin/pip install -e . && .venv/bin/pip install livekit livekit-api
+python -m venv .venv && .venv/bin/pip install -e .
 ```
 
-(The `livekit`/`livekit-api` pip installs are required by the host bench client —
-they are NOT declared in pyproject.)
+The gateway target (`--target livekit-gateway`, `ws://…:8084`) uses
+`PlivoWsClient` over plain `websockets` — it needs NEITHER `livekit` nor
+`livekit-api`. The `LivekitRtcClient` import is now lazy, so a gateway-only run
+imports cleanly without them. Only install `livekit livekit-api` if you also
+want to run the stock-LiveKit comparison target (`--target livekit-python`,
+`livekit://…`), which mints JWT access tokens via `livekit-api`.
 
 ## Sweep script
 

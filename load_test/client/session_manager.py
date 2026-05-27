@@ -17,13 +17,18 @@ import asyncio
 import time
 
 from load_test.client.plivo_ws_client import PlivoWsClient
-from load_test.client.livekit_rtc_client import LivekitRtcClient
 from load_test.metrics.collector import TestRunMetrics
 
 
 def _client_for_url(url: str):
-    """Pick the bench client for one URL by scheme."""
+    """Pick the bench client for one URL by scheme.
+
+    LivekitRtcClient is imported lazily so the gateway-only path (PlivoWsClient
+    over plain websockets) doesn't require the `livekit` / `livekit-api`
+    packages — they're only needed for the stock-LiveKit comparison target.
+    """
     if url.startswith("livekit://") or url.startswith("livekit+"):
+        from load_test.client.livekit_rtc_client import LivekitRtcClient
         return LivekitRtcClient
     return PlivoWsClient
 
