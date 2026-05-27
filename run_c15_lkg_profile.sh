@@ -37,11 +37,20 @@ CONTAINER=${COMPOSE_PROJECT}-livekit-gateway-agent-1
 URL=ws://localhost:8084
 IMPL=livekit-gateway
 
-# py-spy sampling window: steady-state only (skip 12s warmup, cover 30s test + slack).
-PROFILE_DURATION=35
-PROFILE_RATE=100       # samples / sec
+# Profiling controls.
+#   PROFILE=0 (default): NO py-spy — clean capacity run. CPU/mem from docker
+#     stats are uncontaminated. USE THIS for capacity numbers.
+#   PROFILE=1: ONE py-spy instance, speedscope only, low rate — for flamegraph
+#     SHAPE only. Note py-spy still adds overhead and lives in the cgroup, so do
+#     NOT trust CPU/mem from a PROFILE=1 run.
+# py-spy was previously run as TWO concurrent instances (flamegraph+speedscope)
+# at rate=100 --subprocesses, costing ~180%+ CPU and corrupting the capped
+# measurement. Now: single speedscope instance at rate=20 (speedscope.app
+# renders the flamegraph view).
+PROFILE=${PROFILE:-0}
+PROFILE_DURATION=${PROFILE_DURATION:-35}
+PROFILE_RATE=${PROFILE_RATE:-20}       # samples / sec (was 100 — too costly)
 WARMUP_SKIP_SEC=${WARMUP_SKIP_SEC:-15}  # c20 warmup=15, c15=12 etc.
-PROFILE_OUT_CONTAINER=/agent-metrics/lkg-${STEP}.svg
 PROFILE_RAW_CONTAINER=/agent-metrics/lkg-${STEP}.speedscope.json
 
 log "single-cell EC2 run: target=$IMPL step=$STEP idle=$NUM_IDLE_PROCESSES cpu=$CPU_LIMIT mem=$MEM_LIMIT HOST_IP=$HOST_IP"
@@ -114,41 +123,39 @@ cd "$WORK_DIR"
 BENCH_PID=$!
 cd "$PROJECT_DIR"
 
-# Let the bench's warmup phase complete before sampling, so py-spy only sees
-# steady-state load (no ramp / prewarm noise).
-log "warmup skip: sleeping ${WARMUP_SKIP_SEC}s before starting py-spy"
-sleep "$WARMUP_SKIP_SEC"
-
-log "starting py-spy (${PROFILE_DURATION}s @ ${PROFILE_RATE} Hz, flamegraph + speedscope)"
-docker exec -d "$CONTAINER" bash -lc \
-  "py-spy record --pid 1 --subprocesses --rate $PROFILE_RATE --duration $PROFILE_DURATION \
-     --format flamegraph --output $PROFILE_OUT_CONTAINER" \
-  >> "$LOG" 2>&1
-docker exec -d "$CONTAINER" bash -lc \
-  "py-spy record --pid 1 --subprocesses --rate $PROFILE_RATE --duration $PROFILE_DURATION \
-     --format speedscope --output $PROFILE_RAW_CONTAINER" \
-  >> "$LOG" 2>&1
+if [ "$PROFILE" = "1" ]; then
+  # Let the bench's warmup phase complete before sampling, so py-spy only sees
+  # steady-state load. SINGLE instance, speedscope only, low rate.
+  # WARNING: CPU/mem from this run are contaminated by py-spy's in-cgroup
+  # overhead — use a PROFILE=0 run for capacity numbers.
+  log "warmup skip: sleeping ${WARMUP_SKIP_SEC}s before starting py-spy"
+  sleep "$WARMUP_SKIP_SEC"
+  log "starting py-spy (single instance, ${PROFILE_DURATION}s @ ${PROFILE_RATE} Hz, speedscope)"
+  docker exec -d "$CONTAINER" bash -lc \
+    "py-spy record --pid 1 --subprocesses --rate $PROFILE_RATE --duration $PROFILE_DURATION \
+       --format speedscope --output $PROFILE_RAW_CONTAINER" \
+    >> "$LOG" 2>&1
+else
+  log "PROFILE=0: no py-spy — clean capacity measurement"
+fi
 
 wait "$BENCH_PID"
 rc=$?
 [ -s "$METRICS_DIR/lkg.jsonl" ] && cp "$METRICS_DIR/lkg.jsonl" "$RESULTS/$TARGET-$STEP.metrics.jsonl"
 log "bench exit=$rc"
 
-# Wait for py-spy to finish writing its files (duration + small margin).
-log "waiting for py-spy to flush..."
-sleep 10
-for f in "$METRICS_DIR/lkg-${STEP}.svg" "$METRICS_DIR/lkg-${STEP}.speedscope.json"; do
-  for _ in $(seq 1 30); do
-    [ -s "$f" ] && break
-    sleep 2
-  done
+if [ "$PROFILE" = "1" ]; then
+  log "waiting for py-spy to flush..."
+  sleep 10
+  f="$METRICS_DIR/lkg-${STEP}.speedscope.json"
+  for _ in $(seq 1 30); do [ -s "$f" ] && break; sleep 2; done
   if [ -s "$f" ]; then
     cp "$f" "$RESULTS/"
     log "  saved $(basename "$f") ($(stat -c%s "$f" 2>/dev/null || stat -f%z "$f") bytes)"
   else
     log "  MISSING $f"
   fi
-done
+fi
 
 log "down -v"
 # HOST_IP fallback: compose interpolates the whole file (incl. livekit-server's
