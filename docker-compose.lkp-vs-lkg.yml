@@ -82,6 +82,7 @@ services:
       context: ..
       dockerfile: agent-transport-load-test/Dockerfile.livekit-gateway-agent
     image: lkp-vs-lkg/lkg-agent:latest
+    command: ["python", "-m", "load_test.servers.livekit_gateway_server", "start", "--log-level", "${LKG_LOG_LEVEL:-info}"]
     environment:
       PLIVO_WS_ADDR: 0.0.0.0:8084
       LIVEKIT_AGENT_WS_ADDR: 0.0.0.0:7884
@@ -92,6 +93,7 @@ services:
       NUM_IDLE_PROCESSES: "${NUM_IDLE_PROCESSES:-22}"
       ENABLE_VAD: "${ENABLE_VAD:-false}"
       ENABLE_TURN_DETECTOR: "${ENABLE_TURN_DETECTOR:-false}"
+      JOB_EXECUTOR_TYPE: "${JOB_EXECUTOR_TYPE:-process}"
       AGENT_METRICS_LOG: /agent-metrics/lkg.jsonl
     ports:
       - "8084:8084"

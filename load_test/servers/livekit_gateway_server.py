@@ -66,6 +66,7 @@ from livekit.agents import (  # noqa: E402
     AgentServer,
     AgentSession,
     JobContext,
+    JobExecutorType,
     JobProcess,
     TurnHandlingOptions,
     cli,
@@ -77,6 +78,38 @@ from load_test.servers.livekit_plugins import BenchLLM, BenchSTT, BenchTTS  # no
 ENABLE_VAD = os.getenv("ENABLE_VAD", "false").lower() == "true"
 ENABLE_TURN_DETECTOR = os.getenv("ENABLE_TURN_DETECTOR", "false").lower() == "true"
 
+# Plugin registration (Plugin.register_plugin) hard-asserts main thread, so
+# silero/turn-detector imports must happen at module-import time on the main
+# thread — NOT inside prewarm() which runs on job_thread_runner in
+# JobExecutorType.THREAD mode.
+if ENABLE_VAD:
+    from livekit.plugins import silero as _silero  # noqa: E402
+else:
+    _silero = None
+
+if ENABLE_TURN_DETECTOR:
+    from livekit.plugins.turn_detector.multilingual import (  # noqa: E402
+        MultilingualModel as _MultilingualModel,
+        _EUORunnerMultilingual as _EUORunnerMultilingual,
+    )
+    # The turn_detector plugin registers BOTH the English and Multilingual
+    # inference runners. In JobExecutorType.THREAD/PROCESS mode the inference
+    # subprocess initializes every registered runner at boot with
+    # local_files_only=True, so we must pre-download the model files for
+    # BOTH variants — not just the one we use — or init fails.
+    from livekit.plugins.turn_detector.english import (  # noqa: E402
+        _EUORunnerEn as _EUORunnerEn,
+    )
+    try:
+        _EUORunnerMultilingual._download_files()
+        _EUORunnerEn._download_files()
+        logger.info("Pre-downloaded EOU model files (English + Multilingual) at import")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"EOU pre-download at import failed: {e}")
+else:
+    _MultilingualModel = None
+    _EUORunnerMultilingual = None
+
 
 class BenchAgent(Agent):
     def __init__(self) -> None:
@@ -87,28 +120,32 @@ class BenchAgent(Agent):
 
 def prewarm(proc: JobProcess) -> None:
     """Match the livekit-python prewarm so the comparison isolates transport,
-    not plugin-load latency."""
-    if ENABLE_VAD:
-        from livekit.plugins import silero
+    not plugin-load latency. Plugin modules are imported at file-top so this
+    works in JobExecutorType.THREAD mode too."""
+    if _silero is not None:
         logger.info("Pre-loading Silero VAD model (8 kHz)...")
-        proc.userdata["vad"] = silero.VAD.load(sample_rate=8000)
+        proc.userdata["vad"] = _silero.VAD.load(sample_rate=8000)
     else:
         proc.userdata["vad"] = None
         logger.info("VAD disabled (ENABLE_VAD=false)")
 
-    if ENABLE_TURN_DETECTOR:
+    if _EUORunnerMultilingual is not None:
         try:
-            from livekit.plugins.turn_detector.multilingual import (
-                _EUORunnerMultilingual,
-            )
             _EUORunnerMultilingual._download_files()
             logger.info("Multilingual EOU model files ready")
         except Exception as e:  # noqa: BLE001
             logger.warning(f"EOU predownload failed: {e}")
 
 
+_JOB_EXECUTOR_TYPE = (
+    JobExecutorType.THREAD
+    if os.getenv("JOB_EXECUTOR_TYPE", "process").lower() == "thread"
+    else JobExecutorType.PROCESS
+)
+
 server = AgentServer(
     num_idle_processes=int(os.getenv("NUM_IDLE_PROCESSES", "2")),
+    job_executor_type=_JOB_EXECUTOR_TYPE,
     # AgentServer's introspection HTTP normally binds :8081. Pick a non-
     # default port so the livekit-python server can run on the same host
     # without an "address already in use" collision.
@@ -134,9 +171,8 @@ async def entrypoint(ctx: JobContext) -> None:
     if ctx.proc.userdata.get("vad") is not None:
         session_kwargs["vad"] = ctx.proc.userdata["vad"]
 
-    if ENABLE_TURN_DETECTOR:
-        from livekit.plugins.turn_detector.multilingual import MultilingualModel
-        session_kwargs["turn_detection"] = MultilingualModel()
+    if _MultilingualModel is not None:
+        session_kwargs["turn_detection"] = _MultilingualModel()
         session_kwargs.pop("turn_handling", None)
 
     session = AgentSession(**session_kwargs)
