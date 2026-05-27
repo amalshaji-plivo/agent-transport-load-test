@@ -70,6 +70,7 @@ PROFILES: dict[str, LoadProfile] = {
     "c24": LoadProfile("c24", [LoadStep(concurrency=24, duration_sec=30, ramp_delay=0.6, warmup_sec=22)]),
     "c25": LoadProfile("c25", [LoadStep(concurrency=25, duration_sec=30, ramp_delay=0.7, warmup_sec=25)]),
     "c30": LoadProfile("c30", [LoadStep(concurrency=30, duration_sec=30, ramp_delay=0.7, warmup_sec=27)]),
+    "c33": LoadProfile("c33", [LoadStep(concurrency=33, duration_sec=30, ramp_delay=0.8, warmup_sec=31)]),
     "c35": LoadProfile("c35", [LoadStep(concurrency=35, duration_sec=30, ramp_delay=0.8, warmup_sec=33)]),
     "c40": LoadProfile("c40", [LoadStep(concurrency=40, duration_sec=30, ramp_delay=1.0, warmup_sec=45)]),
     "c45": LoadProfile("c45", [LoadStep(concurrency=45, duration_sec=30, ramp_delay=1.0, warmup_sec=50)]),

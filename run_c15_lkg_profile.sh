@@ -57,10 +57,27 @@ HOST_IP="${HOST_IP:-0.0.0.0}" docker compose -f "$COMPOSE_FILE" down -v >> "$LOG
 log "force-recreate stack"
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate --wait livekit-gateway-agent mock-services >> "$LOG" 2>&1
 
+# CRITICAL readiness gate (both modes): the gateway closes any Plivo session
+# that arrives before an agent worker has registered, with NoWorkers — it does
+# NOT queue or retry. The agent takes a VARIABLE ~10-15s to register (plugin +
+# model + job-runner init), so a fixed sleep races the connection ramp and
+# yields anywhere from 0/N to N/N. Wait for the gateway to actually log the
+# worker registration before starting the bench.
+reg_deadline=180 reg_elapsed=0
+until docker exec "$CONTAINER" sh -c 'grep -q "worker registered" /tmp/lkg_gateway.log 2>/dev/null'; do
+  if [ "$reg_elapsed" -ge "$reg_deadline" ]; then
+    log "WARN: no 'worker registered' in gateway log after ${reg_deadline}s"
+    break
+  fi
+  sleep 1; reg_elapsed=$((reg_elapsed + 1))
+done
+[ "$reg_elapsed" -lt "$reg_deadline" ] && log "  agent worker registered with gateway (after ${reg_elapsed}s)"
+
 if [ "${JOB_EXECUTOR_TYPE:-process}" = "thread" ]; then
-  # Thread-executor mode: no forkserver pool; one process holds all sessions.
-  log "  thread-executor mode: skipping prewarm-pool wait, sleeping 30s for server warmup"
-  sleep 30
+  # Thread-executor mode: no forkserver pool; worker registration (above) is
+  # the readiness signal. Small settle margin.
+  log "  thread-executor mode: worker registered, settling 5s"
+  sleep 5
 else
   # Wait for the prewarm pool. Works at any log level because we count
   # forkserver-spawned worker processes inside the container, then wait a

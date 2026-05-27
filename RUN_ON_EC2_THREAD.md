@@ -181,3 +181,66 @@ at least c=40.
   session, not one. Audit STT/LLM/TTS adapters + gateway glue for sync I/O.
 - Memory leaks accumulate in one long-lived process instead of being reclaimed
   on per-job respawn.
+
+---
+
+# Process mode (the recommended path) + the registration-race bug
+
+Thread mode was abandoned (no fault isolation + GIL serialization, and the
+single worker is most exposed to the race below). For production sizing, run
+PROCESS mode: `JOB_EXECUTOR_TYPE=process` (the default), `NUM_IDLE_PROCESSES`
+≈ target concurrency + 2.
+
+## The registration race (now fixed in run_c15_lkg_profile.sh)
+
+The Rust gateway rejects any Plivo session that arrives before an agent worker
+has registered (`err=NoWorkers`) and CLOSES it — no queue, no retry. The agent
+takes a variable ~10-15s to register. A fixed warmup sleep races the connection
+ramp, giving anywhere from 0/N to N/N for the SAME config. The harness now gates
+bench start on the gateway logging `worker registered` (polls
+`/tmp/lkg_gateway.log` inside the container). Keep that gate — without it your
+EC2 numbers will be non-deterministic.
+
+## Local (Mac) process-mode result, for reference — EXPECT LOWER ON EC2
+
+| concurrency | sessions | CPU mean/peak | mem peak | wphase p99 | silence p99 |
+|---|---|---|---|---|---|
+| c30 | 30/30 ✓ | 286 % / 404 % | 5.8 GB | 64 ms | 44 ms |
+| c33 | 26/33 ❌ | 280 % / 404 % | 6.8 GB | 62 ms | 42 ms |
+
+Mac ceiling = c=30, bounded by 4-vCPU BURST saturation (peak pinned at the
+400 % cap; mean ~285 %). Memory never the limit (~6 GB of 8 GB). Latency gates
+(wphase ≤30, silence ≤5) FAIL at every concurrency including c=20 — that's the
+constant per-frame cross-process IPC floor, load-independent.
+
+## Why EC2 gives lower concurrency than these Mac numbers
+
+1. **"4 vCPU" on EC2 = hyperthreads** (~2 physical cores) vs 4 full Apple-Silicon
+   cores on the Mac. The choke is CPU-burst-saturation, so the ceiling scales ~
+   linearly with real per-core compute — weaker cores, lower c. The original
+   on-EC2 optimum was c=15 (~2× weaker cores for this onnx/FFI workload).
+2. **Gateway + agent share the cgroup.** The Rust gateway (transport) and the
+   Python agent (VAD + turn-detector onnx inference) draw from the same
+   4 vCPU / 8 GB. `docker stats` CPU is the sum; py-spy only sees the Python
+   side. On weaker EC2 cores both cost more wall-time, so saturation hits sooner.
+
+Pin a DEDICATED instance type (c6i/c7g/m6i — NOT burstable t2/t3/t4g, whose CPU
+credits throttle sustained load) and record it with the results.
+
+## Process sweep on EC2
+
+```bash
+export HOST_IP=$(hostname -I | awk '{print $1}')
+export LKG_LOG_LEVEL=warn ENABLE_VAD=true ENABLE_TURN_DETECTOR=true
+export JOB_EXECUTOR_TYPE=process CPU_LIMIT=4.0 MEM_LIMIT=8G
+for spec in c10:12:12 c12:12:14 c15:12:17 c18:14:20 c20:15:22 c25:25:27; do
+  STEP=${spec%%:*}; rest=${spec#*:}; SKIP=${rest%%:*}; IDLE=${rest##*:}
+  NUM_IDLE_PROCESSES=$IDLE STEP=$STEP WARMUP_SKIP_SEC=$SKIP \
+    RESULTS_DIR=$HOME/bench-out/proc-$STEP ./run_c15_lkg_profile.sh
+  HOST_IP=$HOST_IP docker compose -f docker-compose.lkp-vs-lkg.yml down -v >/dev/null 2>&1 || true
+done
+```
+
+Start lower (c10-c15) since EC2 will choke earlier than the Mac. The ceiling is
+the last step with 100 % sessions AND mean CPU (read it from a no-py-spy run)
+under ~320 % (80 % of the 400 % cap).
