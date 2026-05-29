@@ -70,6 +70,15 @@ PROFILES: dict[str, LoadProfile] = {
     "c24": LoadProfile("c24", [LoadStep(concurrency=24, duration_sec=30, ramp_delay=0.6, warmup_sec=22)]),
     "c25": LoadProfile("c25", [LoadStep(concurrency=25, duration_sec=30, ramp_delay=0.7, warmup_sec=25)]),
     "c30": LoadProfile("c30", [LoadStep(concurrency=30, duration_sec=30, ramp_delay=0.7, warmup_sec=27)]),
+    # Gradual arrival: 2s between calls (30 calls ramp over 60s). duration_sec=90
+    # so calls outlast the ramp and 30 are concurrent at steady state. Tests
+    # whether a small idle pool survives realistic (non-burst) arrival.
+    "c30_slow": LoadProfile("c30_slow", [LoadStep(concurrency=30, duration_sec=90, ramp_delay=2.0, warmup_sec=65)]),
+    # Realistic call length: 300s calls, 2s arrival. Steady-state churn (30/300
+    # ≈ 0.1/s) is well below the ~0.25/s prewarm refill, so a SMALL idle pool
+    # should sustain c=30 — models real voice calls (minutes) vs the benchmark's
+    # short calls.
+    "c30_long": LoadProfile("c30_long", [LoadStep(concurrency=30, duration_sec=300, ramp_delay=2.0, warmup_sec=70)]),
     "c33": LoadProfile("c33", [LoadStep(concurrency=33, duration_sec=30, ramp_delay=0.8, warmup_sec=31)]),
     "c35": LoadProfile("c35", [LoadStep(concurrency=35, duration_sec=30, ramp_delay=0.8, warmup_sec=33)]),
     "c40": LoadProfile("c40", [LoadStep(concurrency=40, duration_sec=30, ramp_delay=1.0, warmup_sec=45)]),
