@@ -1,5 +1,14 @@
 # EC2 benchmark instructions (hand this to Claude on the EC2 box)
 
+> **Copy-paste prompt for the EC2 Claude:**
+> Read `EC2_RUN_INSTRUCTIONS.md` in this repo and execute it. It's a
+> self-contained task list for benchmarking the livekit-gateway agent on this
+> box (4 vCPU / 8 GB, process mode, VAD + multilingual turn detector on). Also
+> read `PROCESS_MODE_FINDINGS.md` and `RUN_ON_EC2_THREAD.md` first for
+> methodology and the bugs already fixed. Report the capacity ceiling and — the
+> key open question — the minimum `NUM_IDLE_PROCESSES` that sustains that
+> ceiling under realistic 300 s calls, with the memory it costs.
+
 You are running the livekit-gateway load-test harness on a real EC2 instance.
 All harness code, fixes, and prior findings are already in this repo. Read
 `PROCESS_MODE_FINDINGS.md` and `RUN_ON_EC2_THREAD.md` first — they contain the
