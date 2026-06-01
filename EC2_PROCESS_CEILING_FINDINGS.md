@@ -94,6 +94,29 @@ governing rule `idle ≥ ceil(peak_arrival_rate × prewarm_seconds)`: at 0.5
 calls/s × ~12 s ≈ **6**. idle=6 costs only 4.0 GB and eliminates cold-starts at
 this arrival rate.
 
+### Burst arrival — does idle=6 survive 17 simultaneous calls?
+
+The Phase 2 sweep used staggered arrival (0.5-2 s between call starts). To test
+the opposite extreme, `c17_burst` lands all 17 calls within ~1 s
+(`ramp_delay=0.05`), with idle=6 — so 11 sessions must wait for on-demand worker
+spawns during the burst.
+
+| c | idle | arrival | sessions | CPU mean/peak | mem | wphase p99 | verdict |
+|---|---|---|---|---|---|---|---|
+| 17 | 6 | burst (~1 s) | **17/17** | 225 % / 402 % | 4.0 GB | 23.0 ms | **PASS** |
+
+**idle=6 holds 17/17 even under burst arrival.** With `load_threshold=inf` the
+gateway no longer rejects the 11 excess calls (the 0.7 gate would have
+`NoWorkers`'d them) — it queues them and spawns workers on demand, which catch
+up within the burst. Peak CPU briefly hits the 402 % cap during the spawn storm,
+then settles.
+
+**Caveat:** the 11 cold-spawned sessions each waited ~10-12 s for a worker during
+the burst; `warmup_sec=20` discards that window, so the clean steady-state
+percentiles are post-recovery. idle=6 holds for CAPACITY and steady-state
+QUALITY under burst, but those callers see a one-time cold-start before the bot
+first responds. To eliminate burst cold-starts, size idle to the burst (idle=17).
+
 ## Final recommendation (4 vCPU / 8 GB, process mode, VAD + multilingual TD)
 
 | setting | value | rationale |

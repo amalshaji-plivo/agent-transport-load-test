@@ -86,6 +86,12 @@ PROFILES: dict[str, LoadProfile] = {
     # Phase 2 — realistic long calls at the EC2 ceiling (c17). 300s calls, 2s
     # arrival (low churn: 17 calls ramp over 34s, then steady). warmup ~C*2+10.
     "c17_long": LoadProfile("c17_long", [LoadStep(concurrency=17, duration_sec=300, ramp_delay=2.0, warmup_sec=44)]),
+    # Burst arrival: all 17 calls land within ~1s (ramp_delay=0.05). Stresses
+    # the prewarm pool — with idle<17 the excess sessions must wait for
+    # on-demand worker spawns during the burst. warmup_sec=20 so the post-burst
+    # steady state is what's measured, but with_output still counts any session
+    # that died during the burst.
+    "c17_burst": LoadProfile("c17_burst", [LoadStep(concurrency=17, duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
     "c35": LoadProfile("c35", [LoadStep(concurrency=35, duration_sec=30, ramp_delay=0.8, warmup_sec=33)]),
     "c40": LoadProfile("c40", [LoadStep(concurrency=40, duration_sec=30, ramp_delay=1.0, warmup_sec=45)]),
     "c45": LoadProfile("c45", [LoadStep(concurrency=45, duration_sec=30, ramp_delay=1.0, warmup_sec=50)]),
