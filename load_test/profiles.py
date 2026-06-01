@@ -92,6 +92,15 @@ PROFILES: dict[str, LoadProfile] = {
     # steady state is what's measured, but with_output still counts any session
     # that died during the burst.
     "c17_burst": LoadProfile("c17_burst", [LoadStep(concurrency=17, duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
+    # Burst-ceiling sweep: same ~1s burst at lower c (run with idle=c so every
+    # call gets a warm worker — no cold-start — and we isolate the refill-storm
+    # effect on steady-state audio). Find highest c where within-phrase p99 holds.
+    "c8_burst":  LoadProfile("c8_burst",  [LoadStep(concurrency=8,  duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
+    "c10_burst": LoadProfile("c10_burst", [LoadStep(concurrency=10, duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
+    "c12_burst": LoadProfile("c12_burst", [LoadStep(concurrency=12, duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
+    "c14_burst": LoadProfile("c14_burst", [LoadStep(concurrency=14, duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
+    "c15_burst": LoadProfile("c15_burst", [LoadStep(concurrency=15, duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
+    "c16_burst": LoadProfile("c16_burst", [LoadStep(concurrency=16, duration_sec=45, ramp_delay=0.05, warmup_sec=20)]),
     "c35": LoadProfile("c35", [LoadStep(concurrency=35, duration_sec=30, ramp_delay=0.8, warmup_sec=33)]),
     "c40": LoadProfile("c40", [LoadStep(concurrency=40, duration_sec=30, ramp_delay=1.0, warmup_sec=45)]),
     "c45": LoadProfile("c45", [LoadStep(concurrency=45, duration_sec=30, ramp_delay=1.0, warmup_sec=50)]),

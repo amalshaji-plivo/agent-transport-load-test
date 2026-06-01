@@ -156,6 +156,40 @@ burst arrival creates a simultaneous storm; staggered/ramp arrival never does.
 **For staggered/steady telephony traffic (the realistic case): no action needed
 — c17 with a modest idle (≈6) answers every call in ~1.6 s with clean audio.**
 
+### Burst ceiling — highest c that survives a ~1 s burst cleanly
+
+Sweep c at burst arrival with **idle = c** (pool covers the burst → no cold-start;
+isolates the refill-storm effect on steady audio). Gate: within-phrase p99 ≤ 30 ms,
+silence p90 ≤ 5 ms, 100 % sessions, and first-response tight (~1.7 s, no dead air).
+
+| c | idle | sessions | wphase p95 | wphase p99 | sil p90 | first-response | mem | gate |
+|---|---|---|---|---|---|---|---|---|
+| 8  | 8  | 8/8   | 20.5 | 20.8 ms | 0.36 | 1.6-3.2 s | — | PASS |
+| 10 | 10 | 10/10 | 20.5 | 20.8 ms | 0.32 | 1.6-2.2 s | — | PASS |
+| 12 | 12 | 12/12 | 20.6 | 21.0 ms | 0.37 | 1.6-2.2 s | — | PASS |
+| 14 | 14 | 14/14 | 20.7 | 21.3 ms | 0.38 | 1.7-2.4 s | — | PASS |
+| **15** | **15** | **15/15** | **20.8** | **23.8 ms** | **0.46** | **1.7-3.4 s** | **5.3 GB** | **PASS (ceiling)** |
+| 16 | 16 | 16/16 | 21.0 | 30.9 ms | 0.50 | 1.6-2.5 s | — | FAIL (marginal) |
+| 17 | 17 | 17/17 | — | 51.2 ms | 0.51 | 1.7-2.5 s | 5.8 GB | FAIL |
+
+**Burst ceiling = c15** (idle=15). With the pool sized to the burst, every call
+gets a warm worker — first-response is the normal ~1.7 s pipeline, no cold-start
+dead air — and the 15-worker refill storm still fits the CPU headroom (within-
+phrase p99 23.8 ms). At c16 the storm pushes p99 to the 30 ms edge; at c17 it
+blows to 51 ms.
+
+**Two ceilings, by arrival pattern:**
+
+| arrival | ceiling | idle | first-response | why |
+|---|---|---|---|---|
+| ramp / steady (2 s+ between calls) | **c17** | ~6 | ~1.6 s | no spawn storm; on-demand refill keeps up |
+| burst (all within ~1 s) | **c15** | **= c (15)** | ~1.7 s | idle must cover the burst (no cold-start); refill storm caps audio at c15 |
+
+The burst ceiling (c15) costs ~2 fewer concurrent calls than the ramp ceiling
+(c17) AND a much larger idle pool (15 vs 6, ≈ +1.4 GB) — the price of burst
+tolerance. Below c15 there's enough CPU headroom that the refill storm is
+invisible; the 30 ms gate is crossed at c16.
+
 ## Final recommendation (4 vCPU / 8 GB, process mode, VAD + multilingual TD)
 
 | setting | value | rationale |
