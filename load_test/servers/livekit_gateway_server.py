@@ -146,6 +146,13 @@ _JOB_EXECUTOR_TYPE = (
 server = AgentServer(
     num_idle_processes=int(os.getenv("NUM_IDLE_PROCESSES", "2")),
     job_executor_type=_JOB_EXECUTOR_TYPE,
+    # livekit-agents Worker marks itself UNAVAILABLE once its load estimate
+    # exceeds load_threshold (production default = 0.7) and refuses new jobs.
+    # On a 4-vCPU box that gate trips at ~6 concurrent sessions — well before
+    # CPU/memory are actually exhausted — so it masks the true resource
+    # ceiling. Raise it (default inf here) so capacity is bounded by real
+    # CPU/mem, not the availability gate. Set LOAD_THRESHOLD to restore a cap.
+    load_threshold=float(os.getenv("LOAD_THRESHOLD", "inf")),
     # AgentServer's introspection HTTP normally binds :8081. Pick a non-
     # default port so the livekit-python server can run on the same host
     # without an "address already in use" collision.
@@ -167,6 +174,14 @@ async def entrypoint(ctx: JobContext) -> None:
         "preemptive_generation": False,
         "aec_warmup_duration": None,
         "user_away_timeout": None,
+        # Path A — disable barge-in. The bench loops a ~1.3s speech+silence
+        # audio cycle, faster than EC2's slow cores complete a turn (LLM+TTS).
+        # With default interruptions, the next "user speech" cancels the
+        # in-flight response, so only ~7% of LLM turns reach TTS and whole
+        # sessions can land zero completed turns (with_output<total). Disabling
+        # interruptions lets every turn finish → ~100% delivery. Toggle via
+        # ALLOW_INTERRUPTIONS=true to restore default barge-in behaviour.
+        "allow_interruptions": os.getenv("ALLOW_INTERRUPTIONS", "false").lower() == "true",
     }
     if ctx.proc.userdata.get("vad") is not None:
         session_kwargs["vad"] = ctx.proc.userdata["vad"]

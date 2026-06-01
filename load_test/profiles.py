@@ -65,6 +65,9 @@ PROFILES: dict[str, LoadProfile] = {
     "c14": LoadProfile("c14", [LoadStep(concurrency=14, duration_sec=30, ramp_delay=0.5, warmup_sec=12)]),
     "c15": LoadProfile("c15", [LoadStep(concurrency=15, duration_sec=30, ramp_delay=0.5, warmup_sec=12)]),
     "c17": LoadProfile("c17", [LoadStep(concurrency=17, duration_sec=30, ramp_delay=0.5, warmup_sec=14)]),
+    "c12": LoadProfile("c12", [LoadStep(concurrency=12, duration_sec=30, ramp_delay=0.5, warmup_sec=12)]),
+    "c16": LoadProfile("c16", [LoadStep(concurrency=16, duration_sec=30, ramp_delay=0.5, warmup_sec=13)]),
+    "c18": LoadProfile("c18", [LoadStep(concurrency=18, duration_sec=30, ramp_delay=0.5, warmup_sec=14)]),
     "c20": LoadProfile("c20", [LoadStep(concurrency=20, duration_sec=30, ramp_delay=0.5, warmup_sec=15)]),
     "c22": LoadProfile("c22", [LoadStep(concurrency=22, duration_sec=30, ramp_delay=0.6, warmup_sec=20)]),
     "c24": LoadProfile("c24", [LoadStep(concurrency=24, duration_sec=30, ramp_delay=0.6, warmup_sec=22)]),
@@ -80,6 +83,9 @@ PROFILES: dict[str, LoadProfile] = {
     # short calls.
     "c30_long": LoadProfile("c30_long", [LoadStep(concurrency=30, duration_sec=300, ramp_delay=2.0, warmup_sec=70)]),
     "c33": LoadProfile("c33", [LoadStep(concurrency=33, duration_sec=30, ramp_delay=0.8, warmup_sec=31)]),
+    # Phase 2 — realistic long calls at the EC2 ceiling (c17). 300s calls, 2s
+    # arrival (low churn: 17 calls ramp over 34s, then steady). warmup ~C*2+10.
+    "c17_long": LoadProfile("c17_long", [LoadStep(concurrency=17, duration_sec=300, ramp_delay=2.0, warmup_sec=44)]),
     "c35": LoadProfile("c35", [LoadStep(concurrency=35, duration_sec=30, ramp_delay=0.8, warmup_sec=33)]),
     "c40": LoadProfile("c40", [LoadStep(concurrency=40, duration_sec=30, ramp_delay=1.0, warmup_sec=45)]),
     "c45": LoadProfile("c45", [LoadStep(concurrency=45, duration_sec=30, ramp_delay=1.0, warmup_sec=50)]),
