@@ -178,6 +178,12 @@ dead air — and the 15-worker refill storm still fits the CPU headroom (within-
 phrase p99 23.8 ms). At c16 the storm pushes p99 to the 30 ms edge; at c17 it
 blows to 51 ms.
 
+**Validated across 4 trials** (c15/idle=15 burst): within-phrase p99 =
+22.4 / 22.8 / 23.5 / 23.8 ms (mean 23.1 ms, spread 1.4 ms, ~7 ms margin under the
+30 ms gate); 15/15 sessions and silence p90 ~0.4 ms every run; first-response
+consistently 1.6-2.5 s (one straggler to 5.1 s in one trial — a single session,
+no cold-start dead air). Stable and repeatable, not a one-off.
+
 **Two ceilings, by arrival pattern:**
 
 | arrival | ceiling | idle | first-response | why |
