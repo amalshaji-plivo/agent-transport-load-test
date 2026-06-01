@@ -94,28 +94,67 @@ governing rule `idle ≥ ceil(peak_arrival_rate × prewarm_seconds)`: at 0.5
 calls/s × ~12 s ≈ **6**. idle=6 costs only 4.0 GB and eliminates cold-starts at
 this arrival rate.
 
-### Burst arrival — does idle=6 survive 17 simultaneous calls?
+### Initial-response (cold-start) investigation — burst vs ramp arrival
 
-The Phase 2 sweep used staggered arrival (0.5-2 s between call starts). To test
-the opposite extreme, `c17_burst` lands all 17 calls within ~1 s
-(`ramp_delay=0.05`), with idle=6 — so 11 sessions must wait for on-demand worker
-spawns during the burst.
+Capacity gates (sessions + steady-state latency) pass everywhere above, but they
+discard the ramp via `warmup_sec`. The user-facing question is **how long after
+a call connects does the bot first speak** — i.e. time-to-first-turn. Measured
+as the first EOU (turn-detected) event per session.
 
-| c | idle | arrival | sessions | CPU mean/peak | mem | wphase p99 | verdict |
-|---|---|---|---|---|---|---|---|
-| 17 | 6 | burst (~1 s) | **17/17** | 225 % / 402 % | 4.0 GB | 23.0 ms | **PASS** |
+**Per-worker prewarm ≈ 2.5-3 s** (observed `elapsed_time` 2.4-3.0 s; Silero VAD +
+Qwen2 EOU, EOU files pre-baked so no download). A call that arrives with no warm
+worker waits for an on-demand spawn. The pain is **contention**: when many
+spawn at once on 4 vCPUs they queue, and they also compete with active sessions.
 
-**idle=6 holds 17/17 even under burst arrival.** With `load_threshold=inf` the
-gateway no longer rejects the 11 excess calls (the 0.7 gate would have
-`NoWorkers`'d them) — it queues them and spawns workers on demand, which catch
-up within the burst. Peak CPU briefly hits the 402 % cap during the spawn storm,
-then settles.
+**Burst (17 calls within ~1 s) — first-EOU spread per session:**
 
-**Caveat:** the 11 cold-spawned sessions each waited ~10-12 s for a worker during
-the burst; `warmup_sec=20` discards that window, so the clean steady-state
-percentiles are post-recovery. idle=6 holds for CAPACITY and steady-state
-QUALITY under burst, but those callers see a one-time cold-start before the bot
-first responds. To eliminate burst cold-starts, size idle to the burst (idle=17).
+```
+idle=6:   1.7 1.7 1.8 1.8 1.9 1.9 | 4.7 4.7 4.8 4.8 7.4 8.0 8.8 9.1 9.2 10.1 10.3
+          └── 6 warm: ~1.7s ──┘     └─── 11 cold-spawned: 4.7-10.3 s ───┘   wphase p99 23ms (PASS)
+idle=17:  1.7 .. 2.5 (15 sessions)  | 4.9 5.0 (2 stragglers)                  wphase p99 51ms (FAIL)
+```
+
+Neither idle setting is clean at the ceiling under burst:
+- **idle=6** → 11 sessions cold-start (first response 4.7-10.3 s = dead air on a
+  phone call). Steady-state audio is fine once up.
+- **idle=17** → first response fixed (15/17 under 2.6 s), BUT draining all 17
+  warm workers in ~1 s triggers a **simultaneous refill of 17 new workers** that
+  storms the already-CPU-saturated box → within-phrase p99 jumps to **51 ms**
+  (fails the ≤30 ms gate). The audio of the live calls stutters.
+
+**Ramp (2 s between calls) — same c=17, same idle=17:**
+
+| arrival | wphase p99 | CPU peak | first-response |
+|---|---|---|---|
+| **ramp** (2 s/call) | **21.5 ms** ✓ | 385 % | ~1.6 s after each call connects |
+| **burst** (~1 s) | 51.2 ms ✗ | 408 % | 1.7 s (most), refill-storm jitter |
+
+**The initial-response problem is burst-specific — ramp is clean.** Under ramp,
+arrivals and pool refills are spread over time, so no spawn storm: each call gets
+a warm worker (or a just-finished ~3 s spawn) and answers ~1.6 s after it
+connects, with steady-state audio passing all gates. This holds even at small
+idle (idle=1 ≈ idle=17 under ramp) because spawns happen one-at-a-time without
+contention.
+
+**Root cause:** at the c17 ceiling the 4 vCPUs are ~saturated by the live
+sessions, leaving no headroom to absorb a *simultaneous* prewarm storm — whether
+that storm is cold-start spawns (idle<burst) or pool refills (idle≥burst). Only
+burst arrival creates a simultaneous storm; staggered/ramp arrival never does.
+
+**Fixes for burst-arrival traffic (ranked):**
+1. **Run below the ceiling.** At c≤~12 there's CPU headroom to absorb a prewarm
+   storm; burst first-response and steady audio both stay clean. (Trade capacity
+   for burst-robustness.)
+2. **Cheaper prewarm** — English-only EOU instead of multilingual Qwen2 cuts the
+   ~2.5-3 s spawn cost and the ~36 % ML CPU, shrinking the storm.
+3. **Rate-limit pool refill** so it doesn't spawn all replacements at once
+   (livekit-agents pool tuning).
+4. **More vCPUs** — headroom for both sessions and prewarm.
+5. **Smooth arrivals** (admission control / dialer pacing) so a true 17-in-1-s
+   burst never reaches one container; route bursts across replicas.
+
+**For staggered/steady telephony traffic (the realistic case): no action needed
+— c17 with a modest idle (≈6) answers every call in ~1.6 s with clean audio.**
 
 ## Final recommendation (4 vCPU / 8 GB, process mode, VAD + multilingual TD)
 
