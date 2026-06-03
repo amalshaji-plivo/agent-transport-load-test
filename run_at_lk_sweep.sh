@@ -1,44 +1,40 @@
 #!/bin/bash
-# AT + LiveKit capacity sweep on agent-transport 0.2.0.
-# Config: multilingual turn detector + Python Silero VAD (NO Rust VAD), PROFILE=0
-# (no py-spy) so docker-stats CPU/mem are uncontaminated capacity numbers.
+# AT + LiveKit capacity sweep on agent-transport 0.2.0 (turn detector + Python VAD).
+# Portable (Mac or EC2). Run inside tmux/nohup on EC2 so it survives disconnects.
 #
-# Sweeps two single-container hardware profiles to find the per-profile
-# concurrency ceiling. Per-step fresh container (handled by the CLI's
-# fresh_container_per_step) so every level starts from a cold process.
+#   bash run_at_lk_sweep.sh                  # both profiles: 1 vCPU/2G then 4 vCPU/8G
+#   PROFILES=4cpu bash run_at_lk_sweep.sh    # only the 4 vCPU profile
+#   PROFILES=1cpu bash run_at_lk_sweep.sh    # only the 1 vCPU profile
 #
-# Progress: per-step summaries stream into results-0.2.0-lk-td/<name>.out;
-# profile-level markers go to results-0.2.0-lk-td/progress.log.
-set -uo pipefail
+# Env knobs (defaults match the validated config): TURN_SILENCE_MS, MIN/MAX_ENDPOINTING_DELAY,
+# PYBIN, RESULTS_DIR. PROFILE stays 0 (clean CPU/mem; never run py-spy in a capacity sweep).
+set +e   # never let one failed step abort the whole sweep
 
-D=/Users/amal.shaji/Workspace/plivo-labs/agent-transport-load-test
-cd "$D"
-RESULTS="$D/results-0.2.0-lk-td"
-PROG="$RESULTS/progress.log"
-mkdir -p "$RESULTS"
-CONTAINER=agent-transport-load-test-agent-transport-livekit-1
-PYBIN="$D/.venv/bin/python"
+D="$(cd "$(dirname "$0")" && pwd)"
+export COMPOSE_PROJECT_NAME="$(basename "$D")"
+RESULTS="${RESULTS_DIR:-$D/results-0.2.0-lk-td}"; PROG="$RESULTS/progress.log"; mkdir -p "$RESULTS"
+C="${COMPOSE_PROJECT_NAME}-agent-transport-livekit-1"
+PY="${PYBIN:-$D/.venv/bin/python}"
 
-# Config under test: turn detector ON, Rust VAD OFF (Python VAD auto-loads),
-# clean capacity measurement (no py-spy).
-export ENABLE_TURN_DETECTOR=true ENABLE_VAD=false ENABLE_PY_VAD=false PROFILE=0
+export PYTHONPATH="$D"
+export COMPOSE_FILE="$D/docker-compose.yml:$D/docker-compose.mocks.yml"
+export ENABLE_TURN_DETECTOR=true ENABLE_VAD=false ENABLE_PY_VAD=false PROFILE=0 METRICS_LOG=false
+export TURN_SILENCE_MS="${TURN_SILENCE_MS:-4000}"
+export MIN_ENDPOINTING_DELAY="${MIN_ENDPOINTING_DELAY:-0.4}" MAX_ENDPOINTING_DELAY="${MAX_ENDPOINTING_DELAY:-1.5}"
 
-log() { echo "$(date '+%H:%M:%S') $*" | tee -a "$PROG"; }
-
-run_profile() {
-  local name="$1" cpu="$2" mem="$3" profile="$4"
-  export CPU_LIMIT="$cpu" MEM_LIMIT="$mem"
-  log "=== START $name : cpu=$cpu mem=$mem profile=$profile (turn-detector + python-VAD) ==="
-  docker compose down >/dev/null 2>&1 || true
-  "$PYBIN" -m load_test.cli --profile "$profile" --target agent-transport-livekit \
-      --docker-container "$CONTAINER" \
-      --output "$RESULTS/$name.json" >> "$RESULTS/$name.out" 2>&1
-  local rc=$?
-  docker compose down >/dev/null 2>&1 || true
-  log "=== DONE  $name (cli exit=$rc) -> $name.json ==="
+lg(){ echo "$(date '+%H:%M:%S') $*" | tee -a "$PROG"; }
+runp(){  # name cpu_limit mem_limit profile
+  export CPU_LIMIT="$2" MEM_LIMIT="$3"
+  lg "=== START $1 (cpu=$2 mem=$3 profile=$4) ==="
+  docker compose down >/dev/null 2>&1
+  "$PY" -m load_test.cli --profile "$4" --target agent-transport-livekit \
+     --docker-container "$C" --output "$RESULTS/$1.json" >> "$RESULTS/$1.out" 2>&1
+  lg "=== DONE $1 (cli rc=$?) ==="
+  docker compose down >/dev/null 2>&1
 }
 
-log "###### AT+LiveKit 0.2.0 capacity sweep BEGIN ######"
-run_profile "1cpu-2gb" "1.0" "2G" "at_lk_1cpu"
-run_profile "4cpu-8gb" "4.0" "8G" "at_lk_4cpu"
-log "###### SWEEP COMPLETE ######"
+P="${PROFILES:-1cpu 4cpu}"
+lg "###### AT+LiveKit 0.2.0 capacity sweep BEGIN (PROFILES=$P, container=$C) ######"
+[[ "$P" == *1cpu* ]] && runp 1cpu-2gb 1.0 2G at_lk_1cpu
+[[ "$P" == *4cpu* ]] && runp 4cpu-8gb 4.0 8G at_lk_4cpu
+lg "###### SWEEP COMPLETE ######"
