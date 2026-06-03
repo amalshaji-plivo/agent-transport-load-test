@@ -145,3 +145,43 @@ capturing all four signals (clean PROFILE=0; first-response = client-side
 | 4 vCPU / 8 GB | c60 | **c25 strict / ~c55 if 1-session flakes forgiven** | CPU+silence bind near c55-60 |
 
 **4-task aggregate (4×1 vCPU/2 GB, the scale-out topology):** QoE-gated ≈ **40–48 concurrent** (4×c10-12), about half the delivery-only 4×c20=80. Still exceeds a single 4 vCPU Python-pipecat instance's delivery ceiling (~50), but the margin narrows once CPU headroom is respected — and a true apples-to-apples needs the pipecat arms QoE-gated too (blocked by the pipecat zero-output bug).
+
+---
+
+## py-spy CPU profile + per-process memory (sweet spots)
+
+PROFILE=1, single py-spy @ rate 20, speedscope. SHAPE only (py-spy on this
+GIL + inference-subprocess app under-weights throughput; trust docker-stats for
+CPU magnitude). Blocked-vs-on-CPU split applied so parked recv-threads don't
+masquerade as CPU.
+
+**On-CPU breakdown (% of on-CPU samples):**
+
+| component | 4 vCPU @ c25 | 1 vCPU @ c10 |
+|---|---|---|
+| ONNX / EOU inference (`onnxruntime…:322` + `runners.py:118`) | **~51%** | **~53%** |
+| audio / resample / codec (`_audio_io.py`) | 9% | 5% |
+| websocket / transport / FFI (`_ffi_client`) | 5% | 6% |
+| agent / session | 3% | 3% |
+| Silero VAD | 2% | 2% |
+| asyncio loop | 1% | 1% |
+
+Top leaf both profiles: `run (onnxruntime_inference_collection.py:322)` = 41-45%
+alone (EOU ONNX inference). The `_worker (thread.py:90)` bucket (17-25%) is the
+audio-IO/FFI threadpool.
+
+**Per-process memory (4 vCPU @ c25, under load):**
+
+| PID | RSS | role |
+|---|---|---|
+| 19 | **850 MB** | EOU inference subprocess — the fixed memory floor |
+| 1 | 239 MB | main agent server (sessions live here, ~10 MB each) |
+| 18 | 12 MB | inference-proc launcher / IPC |
+
+**Reading it:** CPU is ~half EOU inference, ~half plumbing (audio marshaling, FFI
+transport, asyncio); VAD ~2%; STT/LLM/TTS off-CPU (mock + I/O-bound). Matches the
+Mac REPORT, confirmed on EC2 — and is why the box is CPU-bound at the ceiling.
+Memory = 850 MB EOU floor + ~10 MB/session (so memory never binds). **Biggest CPU
+lever = the multilingual EOU model (English-only EOU ≈ halves the hot path);
+biggest memory lever = the same 850 MB EOU subprocess.** Speedscopes:
+`~/bench-out/at-lk-profile/{4cpu-c25,1cpu-c10}.speedscope.json`.
