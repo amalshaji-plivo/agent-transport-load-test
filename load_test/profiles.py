@@ -460,4 +460,36 @@ PROFILES: dict[str, LoadProfile] = {
         ],
         fresh_container_per_step=False,
     ),
+    # ── AT + LiveKit (turn detector + Python VAD) capacity sweeps ───────────
+    # Per-hardware concurrency ceiling for the agent-transport LiveKit adapter
+    # on 0.2.0 with the multilingual turn detector + Python Silero VAD. Fresh
+    # container per step so each level starts cold. AT speaks plain WebSocket
+    # (no WebRTC DTLS), so ramps can be tighter than the SFU profiles; kept at
+    # 0.3s to absorb per-session model warmup. The 1-vCPU box is expected to
+    # cap low, so it stays in the single digits.
+    "at_lk_1cpu": LoadProfile(
+        name="at_lk_1cpu",
+        steps=[
+            LoadStep(concurrency=2,  duration_sec=60, ramp_delay=0.3, warmup_sec=10),
+            LoadStep(concurrency=4,  duration_sec=60, ramp_delay=0.3, warmup_sec=12),
+            LoadStep(concurrency=6,  duration_sec=60, ramp_delay=0.3, warmup_sec=14),
+            LoadStep(concurrency=8,  duration_sec=60, ramp_delay=0.3, warmup_sec=16),
+            LoadStep(concurrency=10, duration_sec=60, ramp_delay=0.3, warmup_sec=18),
+            LoadStep(concurrency=12, duration_sec=60, ramp_delay=0.3, warmup_sec=20),
+        ],
+        fresh_container_per_step=True,
+    ),
+    "at_lk_4cpu": LoadProfile(
+        name="at_lk_4cpu",
+        steps=[
+            LoadStep(concurrency=8,  duration_sec=60, ramp_delay=0.3, warmup_sec=16),
+            LoadStep(concurrency=12, duration_sec=60, ramp_delay=0.3, warmup_sec=20),
+            LoadStep(concurrency=16, duration_sec=60, ramp_delay=0.3, warmup_sec=24),
+            LoadStep(concurrency=20, duration_sec=60, ramp_delay=0.3, warmup_sec=28),
+            LoadStep(concurrency=25, duration_sec=60, ramp_delay=0.3, warmup_sec=33),
+            LoadStep(concurrency=30, duration_sec=60, ramp_delay=0.3, warmup_sec=40),
+            LoadStep(concurrency=40, duration_sec=60, ramp_delay=0.4, warmup_sec=52),
+        ],
+        fresh_container_per_step=True,
+    ),
 }

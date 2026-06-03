@@ -57,6 +57,7 @@ PACING_INTERVAL_BY_IMPL: dict[str, float] = {
     "direct-pipecat": 0.040,
     "agent-transport-python-vad": 0.020,
     "agent-transport-rust-vad": 0.020,
+    "agent-transport-livekit": 0.020,
     "livekit-gateway": 0.020,
     "livekit-python": 0.020,
 }

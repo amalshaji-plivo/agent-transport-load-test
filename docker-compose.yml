@@ -81,6 +81,9 @@ services:
     environment:
       WS_PORT: "8083"
       HTTP_PORT: "8184"
+      ENABLE_VAD: "${ENABLE_VAD:-false}"
+      ENABLE_TURN_DETECTOR: "${ENABLE_TURN_DETECTOR:-false}"
+      ENABLE_PY_VAD: "${ENABLE_PY_VAD:-false}"
     cpus: "${CPU_LIMIT:-1.0}"
     mem_limit: "${MEM_LIMIT:-512M}"
     deploy:

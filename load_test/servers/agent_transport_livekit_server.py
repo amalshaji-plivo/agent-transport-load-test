@@ -47,6 +47,28 @@ ENABLE_VAD = os.getenv("ENABLE_VAD", "false").lower() == "true"
 # ML turn detector (livekit-plugins-turn-detector multilingual ONNX). When on,
 # replaces the STT-based turn handling with semantic end-of-utterance detection.
 ENABLE_TURN_DETECTOR = os.getenv("ENABLE_TURN_DETECTOR", "false").lower() == "true"
+# Python Silero VAD inside the AgentSession (distinct from the Rust endpoint VAD
+# enabled by ENABLE_VAD). Auto-used when the turn detector is on and Rust VAD is
+# off, since the semantic EOU turn detector refines VAD endpoints and needs VAD
+# events to fire. Can also be forced on independently with ENABLE_PY_VAD=true.
+ENABLE_PY_VAD = os.getenv("ENABLE_PY_VAD", "false").lower() == "true"
+
+# Register the multilingual EOU inference runner at IMPORT time. AudioStreamServer
+# only spins up an InferenceProcExecutor when `_InferenceRunner.registered_runners`
+# is non-empty, and it checks that BEFORE the prewarm/setup hook runs. Importing the
+# turn detector lazily (inside prewarm/entrypoint) registers the runner too late, so
+# ctx.inference_executor stays None and EOU prediction fails with
+# "'NoneType' object has no attribute 'do_inference'". Importing here registers
+# 'lk_end_of_utterance_multilingual' before server.run(), so the executor is built.
+if ENABLE_TURN_DETECTOR:
+    from livekit.plugins.turn_detector.multilingual import MultilingualModel  # noqa: F401  (registers EOU runner)
+
+# Endpointing delays for the EOU turn detector (seconds). Capping max keeps each
+# user turn committing within the bench's inter-utterance silence window even
+# when the model is uncertain on synthetic audio — the EOU inference still runs
+# every turn (that cost is the point), we just don't wait the full default.
+MIN_ENDPOINTING_DELAY = float(os.getenv("MIN_ENDPOINTING_DELAY", "0.5"))
+MAX_ENDPOINTING_DELAY = float(os.getenv("MAX_ENDPOINTING_DELAY", "6.0"))
 
 
 class BenchAgent(Agent):
@@ -83,9 +105,17 @@ def prewarm(proc: JobProcess) -> None:
     """
     if ENABLE_VAD:
         logger.info("Rust Silero VAD enabled on endpoint (no Python VAD in AgentSession)")
+        proc.userdata["vad"] = None
+    elif ENABLE_TURN_DETECTOR or ENABLE_PY_VAD:
+        # No Rust VAD, but the AgentSession needs VAD events: the semantic EOU
+        # turn detector refines VAD endpoints rather than replacing them, so it
+        # requires a VAD. Load the LiveKit Silero (Python ONNX) VAD once and
+        # share it across sessions via proc.userdata.
+        logger.info("Loading LiveKit Silero VAD (Python ONNX) for AgentSession turn detection")
+        proc.userdata["vad"] = silero.VAD.load()
     else:
-        logger.info("VAD disabled (ENABLE_VAD=false)")
-    proc.userdata["vad"] = None
+        logger.info("VAD disabled (ENABLE_VAD=false, no turn detector)")
+        proc.userdata["vad"] = None
 
     # Pre-download the multilingual EOU model files at process start so the
     # first session doesn't pay the HuggingFace download cost. The actual
@@ -142,11 +172,34 @@ async def entrypoint(ctx: JobContext) -> None:
         # has to be constructed inside the entrypoint (not in prewarm).
         from livekit.plugins.turn_detector.multilingual import MultilingualModel
         session_kwargs["turn_detection"] = MultilingualModel()
+        # Commit the user turn within the bench's silence gap; the EOU inference
+        # still runs each turn (the load we want to measure).
+        session_kwargs["min_endpointing_delay"] = MIN_ENDPOINTING_DELAY
+        session_kwargs["max_endpointing_delay"] = MAX_ENDPOINTING_DELAY
         session_kwargs.pop("turn_handling", None)
 
     _t("before_AgentSession()")
     session = AgentSession(**session_kwargs)
     _t("after_AgentSession()")
+
+    # Per-turn component breakdown (EOU endpointing delay, STT transcription
+    # delay, LLM time-to-first-token, TTS time-to-first-byte). Gated on
+    # METRICS_LOG so it's off during high-concurrency sweeps. This is the TRUE
+    # response-latency source — the bench's send/recv RTT assumes continuous
+    # output and mismeasures a sparse speak-then-pause turn cadence.
+    if os.getenv("METRICS_LOG", "false").lower() == "true":
+        def _on_metrics(ev) -> None:
+            m = getattr(ev, "metrics", ev)
+            f = {
+                a: round(getattr(m, a) * 1000)
+                for a in ("end_of_utterance_delay", "transcription_delay", "ttft", "ttfb", "duration", "audio_duration")
+                if isinstance(getattr(m, a, None), (int, float))
+            }
+            logger.info(f"[METRICS {sid}] {type(m).__name__} {f}")
+        try:
+            session.on("metrics_collected", _on_metrics)
+        except Exception as e:  # pragma: no cover
+            logger.warning(f"metrics hook registration failed: {e}")
 
     # Auto-wire: replaces session.input.audio / session.output.audio with
     # AudioStreamInput / AudioStreamOutput backed by Rust transport.

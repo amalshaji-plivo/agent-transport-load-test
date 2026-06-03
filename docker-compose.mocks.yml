@@ -1,0 +1,41 @@
+# Overlay that adds the wire-mock STT/LLM/TTS service and points the
+# agent-transport-livekit server at it.
+#
+# Unlike the pipecat / direct servers (inline timing sims, no network), the
+# AT+LiveKit bench plugins (load_test/servers/livekit_plugins.py) talk to the
+# mock STT/LLM/TTS over real WS/HTTP via MOCK_SERVICES_HOST. The base
+# docker-compose.yml has no mock-services, so the LiveKit target produces zero
+# output without this overlay. Merge it with:
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.mocks.yml docker compose ...
+#
+services:
+  mock-services:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock-services
+    image: agent-transport-load-test/mock-services:latest
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:9000/healthz\")'"]
+      interval: 3s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  agent-transport-livekit:
+    environment:
+      # WS_PORT / HTTP_PORT / ENABLE_* come from the base compose; this only
+      # adds the mock host (compose merges environment maps by key).
+      MOCK_SERVICES_HOST: mock-services:9000
+      # EOU endpointing caps (read by the server inside the container) — pass the
+      # host env through so the user turn commits inside the bench's silence gap.
+      MIN_ENDPOINTING_DELAY: "${MIN_ENDPOINTING_DELAY:-0.5}"
+      MAX_ENDPOINTING_DELAY: "${MAX_ENDPOINTING_DELAY:-6.0}"
+      METRICS_LOG: "${METRICS_LOG:-false}"
+    cap_add:
+      - SYS_PTRACE   # let py-spy --pid 1 --subprocesses attach during PROFILE=1
+    depends_on:
+      mock-services:
+        condition: service_healthy

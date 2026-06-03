@@ -16,6 +16,7 @@ TARGET_MAP = {
     "agent-transport": "agent-transport-rust-vad",
     "agent-transport-python-vad": "agent-transport-python-vad",
     "agent-transport-rust-vad": "agent-transport-rust-vad",
+    "agent-transport-livekit": "agent-transport-livekit",
     "livekit-gateway": "livekit-gateway",
     "livekit-python": "livekit-python",
 }
@@ -76,6 +77,7 @@ Examples:
             "agent-transport",
             "agent-transport-python-vad",
             "agent-transport-rust-vad",
+            "agent-transport-livekit",
             "livekit-gateway",
             "livekit-python",
         ],
@@ -114,6 +116,11 @@ Examples:
         "--at-rust-url",
         default=None,
         help="WebSocket URL for agent-transport Rust-VAD server (default: ws://localhost:8082)",
+    )
+    parser.add_argument(
+        "--at-livekit-url",
+        default=None,
+        help="WebSocket URL for the agent-transport + LiveKit-adapter server (default: ws://localhost:8083)",
     )
     parser.add_argument(
         "--lkg-url",
@@ -202,6 +209,11 @@ Examples:
                 args.at_rust_url or args.at_url or "ws://localhost:8082",
                 "agent-transport-rust-vad",
                 8082,
+            ),
+            "agent-transport-livekit": (
+                args.at_livekit_url or "ws://localhost:8083",
+                "agent-transport-livekit",
+                8083,
             ),
             "livekit-gateway": (
                 args.lkg_url or "ws://localhost:8084",

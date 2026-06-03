@@ -6,6 +6,7 @@ paths see realistic speech/silence boundaries instead of an endless test tone.
 
 import base64
 import math
+import os
 import struct
 from pathlib import Path
 
@@ -14,7 +15,12 @@ _MU = 255
 _BIAS = 0x84
 _CLIP = 32635
 _CHUNK_SAMPLES = 160  # 20ms at 8kHz
-_SILENCE_FRAMES_PER_TURN = 35  # 700ms trailing silence after each utterance
+# Trailing silence after each utterance. The 700 ms default suits STT-driven
+# turn-taking; for the EOU turn detector set TURN_SILENCE_MS high enough (~3-4 s)
+# that the agent can run VAD end-of-speech -> EOU -> LLM -> TTS and finish its
+# reply inside the gap, giving a realistic speak-then-pause cadence (otherwise
+# the next utterance interrupts the reply and turns never settle).
+_SILENCE_FRAMES_PER_TURN = max(1, int(os.getenv("TURN_SILENCE_MS", "700")) // 20)
 _SPEECH_PCM16_8KHZ_B64_PATH = Path(__file__).with_name("hello_there_pcm16_8khz.b64")
 
 # Precomputed PCM-to-mulaw lookup for the sign+magnitude encoding

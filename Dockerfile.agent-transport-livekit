@@ -11,12 +11,18 @@ WORKDIR /app
 # when ENABLE_TURN_DETECTOR=true. Models are pulled from HuggingFace at first
 # use; we trigger that ahead of time below so containers don't pay the
 # download penalty inside a benchmark step.
+#
+# agent-transport 0.2.0 is the current PyPI release (async-id audio protocol +
+# unified JobContext). livekit-agents is floored at >=1.5.15 — the version
+# 0.2.0 validated against. py-spy is bundled for in-container CPU profiling
+# (PROFILE=1 runs only; never trust docker-stats CPU from a profiled run).
 RUN pip install --no-cache-dir \
-    "livekit-agents>=1.5" \
+    "livekit-agents>=1.5.15" \
     livekit-plugins-silero \
     livekit-plugins-turn-detector \
-    "agent-transport==0.1.11" \
-    aiohttp loguru websockets uvloop
+    "agent-transport==0.2.0" \
+    aiohttp loguru websockets uvloop \
+    py-spy
 
 # Pre-download the multilingual EOU model so the first session doesn't pay
 # the HuggingFace download cost. Uses the runner class method (the model class

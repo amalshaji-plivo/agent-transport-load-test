@@ -1,0 +1,200 @@
+11:36:58 | INFO    | Benchmark profile: at_lk_1cpu
+11:36:58 | INFO    | Steps: [(2, '60s'), (4, '60s'), (6, '60s'), (8, '60s'), (10, '60s'), (12, '60s')]
+11:36:58 | INFO    | Recreating container 'agent-transport-livekit' for fresh state...
+ Network agent-transport-load-test_default Creating 
+ Network agent-transport-load-test_default Created 
+ Container agent-transport-load-test-mock-services-1 Creating 
+ Container agent-transport-load-test-mock-services-1 Created 
+ Container agent-transport-load-test-agent-transport-livekit-1 Creating 
+ Container agent-transport-load-test-agent-transport-livekit-1 Created 
+ Container agent-transport-load-test-mock-services-1 Starting 
+ Container agent-transport-load-test-mock-services-1 Started 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Starting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Started 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Healthy 
+11:37:10 | INFO    | Settling 5.0s after restart (prewarm)...
+11:37:15 | INFO    | Running agent-transport-livekit | concurrency=2 | duration=60s | warmup=10s
+
+============================================================
+  agent-transport-livekit | concurrency=2 | pacing=20 ms (50 f/s ideal)
+  sessions=2 | with_output=2 | eligible=0  ← if eligible << with_output, survivorship bias is in play
+  frames: 5987 sent / 165 recv | throughput=1.2 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap                 -- ms           -- ms
+    (max)                             -- ms                
+  Mean / peak CPU                    13.0 %          35.7 %
+  Within-phrase gap                   -- ms           -- ms
+  Jitter (p50/p99)                    -- ms           -- ms
+  First-frame (cold)            30142.24 ms     41999.99 ms
+  Post-warmup RTT               20011.96 ms     31997.28 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory               996.6 MB       1031.2 MB
+11:39:37 | INFO    | Recreating container 'agent-transport-livekit' for fresh state...
+ Container agent-transport-load-test-mock-services-1 Running 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreate 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreated 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Starting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Started 
+ Container agent-transport-load-test-agent-transport-livekit-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Healthy 
+11:39:44 | INFO    | Settling 5.0s after restart (prewarm)...
+11:39:49 | INFO    | Running agent-transport-livekit | concurrency=4 | duration=60s | warmup=12s
+
+============================================================
+  agent-transport-livekit | concurrency=4 | pacing=20 ms (50 f/s ideal)
+  sessions=4 | with_output=4 | eligible=1  ← if eligible << with_output, survivorship bias is in play
+  frames: 11910 sent / 328 recv | throughput=2.4 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.25 ms        79.63 ms
+    (max)                          80.22 ms                
+  Mean / peak CPU                    19.7 %          47.3 %
+  Within-phrase gap                25.62 ms        99.63 ms
+  Jitter (p50/p99)                  5.77 ms        74.00 ms
+  First-frame (cold)             4022.09 ms      4120.93 ms
+  Post-warmup RTT               21381.94 ms     23950.25 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1009.6 MB       1087.5 MB
+11:42:16 | INFO    | Recreating container 'agent-transport-livekit' for fresh state...
+ Container agent-transport-load-test-mock-services-1 Running 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreate 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreated 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Starting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Started 
+ Container agent-transport-load-test-agent-transport-livekit-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Healthy 
+11:42:23 | INFO    | Settling 5.0s after restart (prewarm)...
+11:42:28 | INFO    | Running agent-transport-livekit | concurrency=6 | duration=60s | warmup=14s
+
+============================================================
+  agent-transport-livekit | concurrency=6 | pacing=20 ms (50 f/s ideal)
+  sessions=6 | with_output=6 | eligible=5  ← if eligible << with_output, survivorship bias is in play
+  frames: 17774 sent / 677 recv | throughput=5.0 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.02 ms        80.17 ms
+    (max)                         102.57 ms                
+  Mean / peak CPU                    23.2 %          57.5 %
+  Within-phrase gap                26.03 ms       100.17 ms
+  Jitter (p50/p99)                  6.07 ms        74.14 ms
+  First-frame (cold)             6061.68 ms     21416.70 ms
+  Post-warmup RTT                9741.41 ms     25129.59 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1048.8 MB       1084.4 MB
+11:45:00 | INFO    | Recreating container 'agent-transport-livekit' for fresh state...
+ Container agent-transport-load-test-mock-services-1 Running 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreate 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreated 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Starting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Started 
+ Container agent-transport-load-test-agent-transport-livekit-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Healthy 
+11:45:07 | INFO    | Settling 5.0s after restart (prewarm)...
+11:45:12 | INFO    | Running agent-transport-livekit | concurrency=8 | duration=60s | warmup=16s
+
+============================================================
+  agent-transport-livekit | concurrency=8 | pacing=20 ms (50 f/s ideal)
+  sessions=8 | with_output=8 | eligible=0  ← if eligible << with_output, survivorship bias is in play
+  frames: 23579 sent / 337 recv | throughput=2.4 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap                 -- ms           -- ms
+    (max)                             -- ms                
+  Mean / peak CPU                    30.0 %          62.1 %
+  Within-phrase gap                   -- ms           -- ms
+  Jitter (p50/p99)                    -- ms           -- ms
+  First-frame (cold)             5861.44 ms     34588.20 ms
+  Post-warmup RTT               11181.67 ms     29402.96 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1071.7 MB       1136.6 MB
+11:47:48 | INFO    | Recreating container 'agent-transport-livekit' for fresh state...
+ Container agent-transport-load-test-mock-services-1 Running 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreate 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreated 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Starting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Started 
+ Container agent-transport-load-test-agent-transport-livekit-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Healthy 
+11:47:55 | INFO    | Settling 5.0s after restart (prewarm)...
+11:48:00 | INFO    | Running agent-transport-livekit | concurrency=10 | duration=60s | warmup=18s
+
+============================================================
+  agent-transport-livekit | concurrency=10 | pacing=20 ms (50 f/s ideal)
+  sessions=10 | with_output=10 | eligible=8  ← if eligible << with_output, survivorship bias is in play
+  frames: 29324 sent / 1183 recv | throughput=8.4 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.02 ms        79.80 ms
+    (max)                         100.04 ms                
+  Mean / peak CPU                    30.9 %          80.6 %
+  Within-phrase gap                24.58 ms        99.80 ms
+  Jitter (p50/p99)                  4.63 ms        75.22 ms
+  First-frame (cold)             6380.75 ms     34752.23 ms
+  Post-warmup RTT                2671.71 ms     29837.92 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1076.6 MB       1101.8 MB
+11:50:41 | INFO    | Recreating container 'agent-transport-livekit' for fresh state...
+ Container agent-transport-load-test-mock-services-1 Running 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreate 
+ Container agent-transport-load-test-agent-transport-livekit-1 Recreated 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Starting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Started 
+ Container agent-transport-load-test-mock-services-1 Waiting 
+ Container agent-transport-load-test-agent-transport-livekit-1 Waiting 
+ Container agent-transport-load-test-mock-services-1 Healthy 
+ Container agent-transport-load-test-agent-transport-livekit-1 Healthy 
+11:50:48 | INFO    | Settling 5.0s after restart (prewarm)...
+11:50:53 | INFO    | Running agent-transport-livekit | concurrency=12 | duration=60s | warmup=20s
+
+============================================================
+  agent-transport-livekit | concurrency=12 | pacing=20 ms (50 f/s ideal)
+  sessions=12 | with_output=12 | eligible=1  ← if eligible << with_output, survivorship bias is in play
+  frames: 35008 sent / 657 recv | throughput=4.6 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.07 ms        80.38 ms
+    (max)                          81.66 ms                
+  Mean / peak CPU                    35.6 %          87.4 %
+  Within-phrase gap                27.68 ms       100.38 ms
+  Jitter (p50/p99)                  7.74 ms        72.70 ms
+  First-frame (cold)             4421.32 ms     27223.64 ms
+  Post-warmup RTT                8501.38 ms     38928.80 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1088.4 MB       1124.4 MB
+Results exported to /Users/amal.shaji/Workspace/plivo-labs/agent-transport-load-test/results-0.2.0-lk-td/1cpu-2gb.json

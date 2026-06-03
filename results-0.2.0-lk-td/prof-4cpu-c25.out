@@ -1,0 +1,22 @@
+12:19:55 | INFO    | Benchmark profile: c25
+12:19:55 | INFO    | Steps: [(25, '30s')]
+12:19:55 | INFO    | Running agent-transport-livekit | concurrency=25 | duration=30s | warmup=25s
+
+============================================================
+  agent-transport-livekit | concurrency=25 | pacing=20 ms (50 f/s ideal)
+  sessions=25 | with_output=25 | eligible=8  ← if eligible << with_output, survivorship bias is in play
+  frames: 26992 sent / 2321 recv | throughput=26.7 f/s
+============================================================
+
+  Metric                           p50/mean        p99/peak
+  ------------------------- --------------- ---------------
+  Audible silence gap               0.02 ms        79.96 ms
+    (max)                         195.36 ms                
+  Mean / peak CPU                    57.2 %         171.9 %
+  Within-phrase gap                25.09 ms        99.96 ms
+  Jitter (p50/p99)                  5.12 ms        74.87 ms
+  First-frame (cold)             8080.92 ms     35106.46 ms
+  Post-warmup RTT                3260.87 ms     27968.13 ms
+  Pipeline (STT+LLM+TTS)              -- ms           -- ms
+  Mean / peak memory              1181.9 MB       1194.0 MB
+Results exported to /Users/amal.shaji/Workspace/plivo-labs/agent-transport-load-test/results-0.2.0-lk-td/prof-4cpu-c25.json

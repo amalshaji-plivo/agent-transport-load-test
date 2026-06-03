@@ -1,0 +1,4 @@
+11:36:57 ###### AT+LiveKit 0.2.0 capacity sweep (relaunch, robust) BEGIN ######
+11:36:57 === START 1cpu-2gb (cpu=1.0 mem=2G profile=at_lk_1cpu) ===
+11:53:39 === DONE 1cpu-2gb (cli rc=0) ===
+11:53:40 === START 4cpu-8gb (cpu=4.0 mem=8G profile=at_lk_4cpu) ===
