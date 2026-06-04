@@ -39,3 +39,35 @@ services:
     depends_on:
       mock-services:
         condition: service_healthy
+
+  # The pipecat-based servers (direct + agent-transport rust/python VAD) ALSO
+  # talk to mock-services now — their BenchPipecat{STT,LLM,TTS} plugins use
+  # load_test.servers.mock_clients (real WS/HTTP), not the old inline sims.
+  # Without MOCK_SERVICES_HOST they hit localhost:9000 inside the container,
+  # find nothing, and produce ZERO output (no transcript -> no turn -> no reply).
+  direct-pipecat:
+    environment:
+      MOCK_SERVICES_HOST: mock-services:9000
+    cap_add:
+      - SYS_PTRACE
+    depends_on:
+      mock-services:
+        condition: service_healthy
+
+  agent-transport-rust-vad:
+    environment:
+      MOCK_SERVICES_HOST: mock-services:9000
+    cap_add:
+      - SYS_PTRACE
+    depends_on:
+      mock-services:
+        condition: service_healthy
+
+  agent-transport-python-vad:
+    environment:
+      MOCK_SERVICES_HOST: mock-services:9000
+    cap_add:
+      - SYS_PTRACE
+    depends_on:
+      mock-services:
+        condition: service_healthy
