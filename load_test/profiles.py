@@ -476,6 +476,8 @@ PROFILES: dict[str, LoadProfile] = {
     "c12": LoadProfile("c12", [LoadStep(concurrency=12, duration_sec=30, ramp_delay=0.4, warmup_sec=12)]),
     "c16": LoadProfile("c16", [LoadStep(concurrency=16, duration_sec=30, ramp_delay=0.4, warmup_sec=14)]),
     "c18": LoadProfile("c18", [LoadStep(concurrency=18, duration_sec=30, ramp_delay=0.4, warmup_sec=16)]),
+    "c60": LoadProfile("c60", [LoadStep(concurrency=60, duration_sec=30, ramp_delay=0.3, warmup_sec=30)]),
+    "c80": LoadProfile("c80", [LoadStep(concurrency=80, duration_sec=30, ramp_delay=0.25, warmup_sec=35)]),
     "at_lk_1cpu": LoadProfile(
         name="at_lk_1cpu",
         steps=[

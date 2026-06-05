@@ -48,6 +48,12 @@ services:
   direct-pipecat:
     environment:
       MOCK_SERVICES_HOST: mock-services:9000
+      # Scale-up uses all allotted cores: 1 uvicorn process is GIL-bound to ~1
+      # core, so a 4-vCPU box needs WORKERS=4 to actually use 4 cores (else 3
+      # sit idle and the single event loop jitters output audio under load).
+      WORKERS: "${WORKERS:-1}"
+      # Output frame size: 4 = pipecat's 40ms default, 2 = 20ms (matches AT cadence).
+      AUDIO_OUT_10MS_CHUNKS: "${AUDIO_OUT_10MS_CHUNKS:-4}"
     cap_add:
       - SYS_PTRACE
     depends_on:
