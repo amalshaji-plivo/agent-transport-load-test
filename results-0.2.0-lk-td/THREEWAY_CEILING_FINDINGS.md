@@ -25,11 +25,15 @@ The three architectures at equal hardware budget (one 4-vCPU box):
 
 | arch | QoE ceiling /core | ×4 aggregate | binding signal |
 |---|---|---|---|
-| **AT+pipecat** | **c14** | **~56** | audible silence (knee at c16) |
-| **AT+livekit** | **c10** | **~40** | CPU + audio degrade at c12; needs warmup |
+| **AT+pipecat** | **c14** | **~56** (capacity measured¹) | audible silence (knee at c16) |
+| **AT+livekit** | **c10** | **~40** (projection²) | CPU + audio degrade at c12; needs warmup |
 | **Python pipecat** | **c30 delivery, fails 5 ms audio** (6.2 ms best) | ~30 single box | asyncio.sleep pacing floor |
 
-**Verdict (fully measured): AT+pipecat (~56) > AT+livekit (~40) > Python pipecat (~30, fails strict audio gate).**
+¹ AT+pipecat ×4 confirmed on delivery + CPU by a 4-concurrent run (below); audio-at-density inconclusive (co-location confound).
+² AT+livekit ×4 not yet measured — the 4-concurrent run was blocked by a host-networking port collision.
+
+**Verdict: AT+pipecat (~56) > AT+livekit (~40) > Python pipecat (~30, fails strict audio gate).**
+The per-core ceilings are fully measured; the ×4 aggregates are capacity-validated for AT+pipecat and projected for AT+livekit (see 4-concurrent section).
 
 ## Per-run raw data
 
@@ -89,6 +93,43 @@ pipecat is one asyncio process; even WORKERS=4 (SO_REUSEPORT across 4 workers)
 uses only ~15% of the 4-core budget at c30 — the binder is the per-frame
 `asyncio.sleep` tail, not CPU. Adding workers flattens silence *degradation* under
 load (W=1 drifts 10.7→22.8 ms; W=4 holds ~11 ms) but does not lower the floor.
+
+## 4-concurrent aggregate validation (turning ×4 from projection to measurement)
+
+Ran 4 independent agent containers at once, each cgroup-capped to 1 vCPU/2 GB at
+its per-core ceiling, with 4 bench clients firing in parallel and one shared
+mock-services backend (CPU sampled throughout). Host-networked on the 8-vCPU box.
+
+**AT+pipecat — 4 × c14 simultaneously:**
+| signal | isolated | 4-concurrent | holds? |
+|---|---|---|---|
+| delivery | 14/14 | **56/56** | ✅ scales ×4 |
+| CPU / container | 38% | 43% | ✅ cgroup isolation clean |
+| client frames sent | full | full (18.7k each) | ✅ clients not send-starved |
+| audible-silence p90 | 0.9 ms | **11.9 ms (max 17)** | ❌ degraded |
+| mock-services CPU | — | 19% peak | ✅ shared backend not the bottleneck |
+
+**What it proves:** the **capacity** half of ~56 is real — 56/56 delivered with clean
+per-container CPU isolation and no backend contention.
+
+**What it can't prove on one box:** audio quality at 4-agents-per-box. Silence rose
+to ~12 ms, but this is **confounded by co-location** — 4 capped agents + 4
+load-generating clients + mocks all share 8 cores. AT+pipecat's sub-ms pacing needs
+its tokio timer to get a core the instant it fires; a saturated host delays those
+wakeups. Clients sent full frame counts (not send-starved), so it is scheduler
+contention for timely wakeups — **partly real** (4 agents/box would see some of this
+in production) and **partly artifact** (in production the load generators are not on
+the agent box). Separating the two needs **off-box clients** (a multi-box rig).
+
+**AT+livekit — 4 × c10: blocked (harness limitation).** Under `--network host` the
+LiveKit agent binds a fixed internal port that collides across containers, so only
+1 of 4 functions (10/40; the working one held at 42 % CPU = isolated value).
+Staggered startup fixed the model-load starvation but not the port collision —
+4 instances on one host need **bridge networking** (separate net namespaces). So the
+AT+livekit ×4 aggregate (~40) remains a projection, not yet measured.
+
+**Net:** AT+pipecat ~56 is capacity-validated (delivery + CPU); AT+livekit ~40 stays
+projected; audio-quality-at-density is a separate question requiring a multi-box rig.
 
 ## Bottom line
 
