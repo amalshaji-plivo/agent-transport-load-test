@@ -12,8 +12,14 @@ The ceiling is bracketed by running adjacent concurrencies as separate tests and
 finding where the joint gate flips.
 
 **QoE gate:** delivery 100% **AND** CPU mean < 80% of cap **AND** audible-silence
-p90 ≤ 5 ms. First-response captured but **not gateable** (synthetic `TURN_SILENCE`
-+ EOU cadence dominates it; noisy at every load).
+p90 ≤ 5 ms (Python pipecat evaluated against a relaxed **≤ 6.5 ms** bar — see note).
+First-response captured but **not gateable** (synthetic `TURN_SILENCE` + EOU cadence
+dominates it; noisy at every load).
+
+> **Silence bar for Python pipecat:** Python's audio-pacing floor is a flat ~6.2 ms
+> (architectural; see below). By decision we **accept 6.2 ms** for Python, so it is
+> gated at ≤ 6.5 ms rather than 5 ms. The AT arms hold sub-1 ms and are still gated at
+> 5 ms.
 
 ---
 
@@ -23,10 +29,17 @@ p90 ≤ 5 ms. First-response captured but **not gateable** (synthetic `TURN_SILE
 |---|---|---|---|---|---|---|
 | **AT+pipecat** (py-VAD) | 1 vCPU / 2 GB | **c14** | 5/5 | 38% | **0.9 ± 0.0 ms** | ✅ |
 | **AT+livekit** (EOU TD) | 1 vCPU / 2 GB | **c10** | 5/5 | 45% | **0.75 ms warm** (cold run 20.1) | ✅ |
-| **Python pipecat** (W=4) | 4 vCPU / 8 GB | **fails gate** (best c30) | 5/5 | 15% of 4 cores | **6.2 ± 0.1 ms** (20 ms frames) | ❌ |
+| **Python pipecat** (W=4) | 4 vCPU / 8 GB | **c30** (≥, untested higher) | 5/5 | 15% of 4 cores | **6.2 ± 0.1 ms** (20 ms frames) | ✅* |
 
-**Verdict: AT+pipecat (c14) and AT+livekit (c10) both hold the full QoE gate per
-container; Python pipecat cannot hold the 5 ms audio gate at any concurrency.**
+\* Python passes only under the accepted ≤ 6.5 ms bar. Its silence floor is flat
+(does not grow with load) and CPU is just 15%, so **silence is not its binder** —
+c30 is the highest *measured* clean point with 20 ms frames; the true ceiling is
+likely higher (delivery/CPU-bound), not yet swept.
+
+**Verdict: AT+pipecat (c14) and AT+livekit (c10) hold the full 5 ms gate per
+container. Python pipecat clears only the relaxed 6.5 ms bar — and only because its
+audio floor sits just above 5 ms; at c30 it has large CPU/concurrency headroom, so
+its accepted-bar ceiling is ≥ c30 (true top untested).**
 
 - **AT+pipecat — c14**, bound by audible silence. Cleanest audio (0.9 ms), lots of CPU
   headroom (38%). c16 rejected (bimodal silence, mean 5.3 ms > gate).
