@@ -29,17 +29,18 @@ dominates it; noisy at every load).
 |---|---|---|---|---|---|---|
 | **AT+pipecat** (py-VAD) | 1 vCPU / 2 GB | **c14** | 5/5 | 38% | **0.9 ± 0.0 ms** | ✅ |
 | **AT+livekit** (EOU TD) | 1 vCPU / 2 GB | **c10** | 5/5 | 45% | **0.75 ms warm** (cold run 20.1) | ✅ |
-| **Python pipecat** (W=4) | 4 vCPU / 8 GB | **c30** (≥, untested higher) | 5/5 | 15% of 4 cores | **6.2 ± 0.1 ms** (20 ms frames) | ✅* |
+| **Python pipecat** (W=4) | 4 vCPU / 8 GB | **c30** (≈c7.5/core) | 5/5 | 15% of 4 cores | **6.2 ± 0.1 ms** (20 ms frames) | ✅* |
 
 \* Python passes only under the accepted ≤ 6.5 ms bar. Its silence floor is flat
-(does not grow with load) and CPU is just 15%, so **silence is not its binder** —
-c30 is the highest *measured* clean point with 20 ms frames; the true ceiling is
-likely higher (delivery/CPU-bound), not yet swept.
+(does not grow with load) and CPU is just 15%, so **silence is not its binder**.
+c30 is the highest concurrency that holds **100 % delivery**; above it Python
+reproducibly cannot (see up-sweep + bracket below). Note c30 is a **4-vCPU
+instance** running 4 workers, so per-core it is ≈ **c7.5/core** — the weakest of
+the three (the GIL caps each worker to ~7–8 sessions).
 
-**Verdict: AT+pipecat (c14) and AT+livekit (c10) hold the full 5 ms gate per
-container. Python pipecat clears only the relaxed 6.5 ms bar — and only because its
-audio floor sits just above 5 ms; at c30 it has large CPU/concurrency headroom, so
-its accepted-bar ceiling is ≥ c30 (true top untested).**
+**Verdict (per core): AT+pipecat (c14/core) > AT+livekit (c10/core) > Python pipecat
+(≈c7.5/core).** The AT arms hold the full 5 ms gate; Python clears only the relaxed
+6.5 ms bar and is the weakest per core.
 
 - **AT+pipecat — c14**, bound by audible silence. Cleanest audio (0.9 ms), lots of CPU
   headroom (38%). c16 rejected (bimodal silence, mean 5.3 ms > gate).
@@ -49,6 +50,19 @@ its accepted-bar ceiling is ≥ c30 (true top untested).**
 - **Python pipecat — fails**, bound by a structural ~6.2 ms audio-pacing floor
   (`asyncio.sleep` output pacing on a GIL-bound loop). Delivers reliably (30/30) and
   is responsive (2.2 s), but never ≤5 ms silence.
+
+## 5× variance (each ceiling config run 5×, fresh container each — variance is low)
+
+| arch (ceiling) | delivery | CPU mean ± sd | silence p90 mean ± sd [min–max] |
+|---|---|---|---|
+| AT+pipecat c14 | 5/5 | 38% ± 0.9 | **0.9 ± 0.0 ms** [0.9–1.0] |
+| AT+livekit c10 | 5/5 | 45% ± 1.9 | 4.6 ± 7.7 ms [0.6–20.1] ¹ |
+| Python pipecat c30 | 5/5 | 61% ± 3.2 | **6.2 ± 0.1 ms** [6.0–6.3] |
+
+¹ AT+livekit's only variance is the **cold-start first run** (20.1 ms); warm runs 2–5
+are 0.6–1.0 ms (sd ≈ 0.16). Add a warmup request and it's as tight as the others.
+Otherwise all three are highly repeatable — silence sd ≤ 0.1 ms for both AT+pipecat
+and Python, delivery 5/5 every run.
 
 ## Per-run raw data
 
@@ -80,6 +94,23 @@ silence metric collected zero gap samples — degradation, not a pass.
 |---|---|---|---|
 | 40 ms (default) | 58–60% | ~51 ms | 11.3–12.0 ms |
 | 20 ms (`audio_out_10ms_chunks=2`) | 56–65% | 26.0–26.3 ms | 6.0–6.3 ms |
+
+**Up-sweep + bracket (20 ms frames, W=4, one container/test) — where does it break?**
+| c (instance) | per-core | delivery | CPU (of 400%) | silence p90 | gate (≤6.5 ms) |
+|---|---|---|---|---|---|
+| 30 | c7.5 | 30/30 | 64% (16%) | 6.2 ms | ✅ |
+| 40 | c10 | **31/40** (5-run 30–31) | 36% (9%) | 6.3 ms | ❌ delivery |
+| 50 | c12.5 | **35/50** (5-run 34–36) | 38% (10%) | 6.2 ms | ❌ delivery |
+| 60 | c15 | 60/60 | 131% (33%) | 16.6 ms | ❌ silence |
+
+c40/c50 were each run **5×**: delivery is **reproducibly ~30–35** (tight) but at only
+~37 % CPU — Python W=4 plateaus at ~30–35 delivered regardless of offered load, while
+silence (6.2 ms) and CPU stay fine. Combined with c60 = 60/60, the pattern is
+**non-monotonic** → the c40/c50 dips are the **cadence-resonance artifact** (profile
+ramp timing vs the 4 s synthetic silence), not a CPU/capacity wall. Under the strict
+gate (delivery 100 %), c40/c50 fail, so the **clean ceiling is c30**; the silence/CPU
+envelope extends to ~c50 if the synthetic-cadence delivery flake is forgiven. A
+realistic STT-driven cadence would smooth the mid-range delivery.
 
 ## Why Python fails the audio gate (config vs architecture)
 
