@@ -467,6 +467,17 @@ PROFILES: dict[str, LoadProfile] = {
     # (no WebRTC DTLS), so ramps can be tighter than the SFU profiles; kept at
     # 0.3s to absorb per-session model warmup. The 1-vCPU box is expected to
     # cap low, so it stays in the single digits.
+    "c50_atlk": LoadProfile("c50_atlk", [LoadStep(concurrency=50, duration_sec=30, ramp_delay=0.4, warmup_sec=55)]),
+    "c60_atlk": LoadProfile("c60_atlk", [LoadStep(concurrency=60, duration_sec=30, ramp_delay=0.4, warmup_sec=30)]),
+    "c75_atlk": LoadProfile("c75_atlk", [LoadStep(concurrency=75, duration_sec=30, ramp_delay=0.4, warmup_sec=35)]),
+    "c100_atlk": LoadProfile("c100_atlk", [LoadStep(concurrency=100, duration_sec=30, ramp_delay=0.4, warmup_sec=45)]),
+    "c4": LoadProfile("c4", [LoadStep(concurrency=4, duration_sec=30, ramp_delay=0.4, warmup_sec=8)]),
+    "c6": LoadProfile("c6", [LoadStep(concurrency=6, duration_sec=30, ramp_delay=0.4, warmup_sec=10)]),
+    "c12": LoadProfile("c12", [LoadStep(concurrency=12, duration_sec=30, ramp_delay=0.4, warmup_sec=12)]),
+    "c16": LoadProfile("c16", [LoadStep(concurrency=16, duration_sec=30, ramp_delay=0.4, warmup_sec=14)]),
+    "c18": LoadProfile("c18", [LoadStep(concurrency=18, duration_sec=30, ramp_delay=0.4, warmup_sec=16)]),
+    "c60": LoadProfile("c60", [LoadStep(concurrency=60, duration_sec=30, ramp_delay=0.3, warmup_sec=30)]),
+    "c80": LoadProfile("c80", [LoadStep(concurrency=80, duration_sec=30, ramp_delay=0.25, warmup_sec=35)]),
     "at_lk_1cpu": LoadProfile(
         name="at_lk_1cpu",
         steps=[

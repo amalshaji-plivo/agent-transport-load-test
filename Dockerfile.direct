@@ -9,7 +9,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir \
     "pipecat-ai[websocket,silero]" \
     fastapi uvicorn aiohttp loguru websockets uvloop \
-    transformers soxr
+    transformers soxr py-spy
 
 COPY load_test/ load_test/
 

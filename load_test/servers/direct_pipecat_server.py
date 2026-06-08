@@ -144,6 +144,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         audio_out_sample_rate=SAMPLE_RATE,
         add_wav_header=False,
         serializer=serializer,
+        # Frame size: pipecat default is 4 (=40ms chunks). AUDIO_OUT_10MS_CHUNKS=2
+        # makes it emit 20ms frames, matching the agent-transport cadence — used
+        # to test whether the audible-silence floor is the frame size or the
+        # asyncio.sleep pacing itself.
+        audio_out_10ms_chunks=int(os.getenv("AUDIO_OUT_10MS_CHUNKS", "4")),
     )
     transport = FastAPIWebsocketTransport(websocket=websocket, params=params)
 
