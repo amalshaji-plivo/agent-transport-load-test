@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir \
     "pipecat-ai[silero]>=0.0.108" \
     "agent-transport==0.1.11" \
     aiohttp loguru websockets uvloop \
-    transformers soxr
+    transformers soxr py-spy
 
 COPY load_test/ load_test/
 

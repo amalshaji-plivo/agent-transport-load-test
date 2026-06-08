@@ -119,6 +119,36 @@ gate (delivery 100 %), c40/c50 fail, so the **clean ceiling is c30**; the silenc
 envelope extends to ~c50 if the synthetic-cadence delivery flake is forgiven. A
 realistic STT-driven cadence would smooth the mid-range delivery.
 
+## py-spy CPU profile at each ceiling (shape only)
+
+py-spy `record --pid 1 --subprocesses --rate 50` for 25 s under load at each
+ceiling. **Shape only** — py-spy lives in the cgroup and perturbs magnitude; trust
+the PROFILE=0 5× CPU numbers above, not these. Top self-time functions:
+
+| | AT+pipecat c14 | AT+livekit c10 | Python c30 |
+|---|---|---|---|
+| **ONNX inference** | 9.3% (Silero VAD) | **49.5% (EOU turn detector)** | 5.5% (Silero VAD) |
+| `_worker` (thread pool¹) | 30.0% | 18.9% | 28.4% |
+| pipeline `run` | 15.9% | 5.5% | 21.6% |
+| audio transport | 4.3% | 1.3% | — |
+| livekit Rust FFI | — | 6.6% | — |
+| ws permessage_deflate | — | — | 1.2% |
+
+¹ `_worker` includes parked thread-pool threads py-spy over-counts in
+`--subprocesses` mode — read as thread-pool overhead, not pure compute.
+
+**What the profile explains:**
+- **AT+livekit caps lowest per core because it is ONNX-bound** — the EOU multilingual
+  turn detector is **49.5%** of the profile, ~5× the Silero VAD in the pipecat arms.
+  Direct cause of c10 < c14.
+- **Both pipecat arms share one shape** (worker threads + pipeline `run`, light VAD),
+  no single hotspot. Python's binder is the `asyncio.sleep` pacing *tail* — a
+  scheduling/latency issue, not compute — which is why its CPU sits at 15% while
+  audio still fails.
+
+Speedscope JSONs committed alongside (`*.speedscope.json`, loadable in speedscope.app);
+parser in `parse_speedscope.py`.
+
 ## Why Python fails the audio gate (config vs architecture)
 
 Pipecat's default `audio_out_10ms_chunks=4` (40 ms frames) caused ~5.5 ms of the
