@@ -125,26 +125,32 @@ py-spy `record --pid 1 --subprocesses --rate 50` for 25 s under load at each
 ceiling. **Shape only** — py-spy lives in the cgroup and perturbs magnitude; trust
 the PROFILE=0 5× CPU numbers above, not these. Top self-time functions:
 
-| | AT+pipecat c14 | AT+livekit c10 | Python c30 |
+| frame (by full path) | AT+pipecat c14 | AT+livekit c10 | Python c30 |
 |---|---|---|---|
-| **ONNX inference** | 9.3% (Silero VAD) | **49.5% (EOU turn detector)** | 5.5% (Silero VAD) |
-| `_worker` (thread pool¹) | 30.0% | 18.9% | 28.4% |
-| pipeline `run` | 15.9% | 5.5% | 21.6% |
-| audio transport | 4.3% | 1.3% | — |
-| livekit Rust FFI | — | 6.6% | — |
+| **ONNX inference** (`onnxruntime/`) | 9.3% (Silero VAD) | **49.5% (EOU turn detector)** | 5.5% (Silero VAD) |
+| `_worker` (`concurrent/futures/thread.py`¹) | 30.0% | 18.9% | 28.4% |
+| asyncio event loop (`asyncio/runners.py`²) | 15.9% | 5.5% | 21.6% |
+| agent_transport audio path | 4.3% (pipecat `audio_stream_transport`) | 1.3% (livekit `_audio_io`) | — |
+| livekit Rust FFI (`livekit/rtc/_ffi_client`) | — | 6.6% | — |
+| livekit Silero VAD (`livekit/plugins/silero`) | — | 0.7% | — |
+| pipecat internals (`pipecat/...`) | ~2% (worker_observer, frames) | — | ~2% |
 | ws permessage_deflate | — | — | 1.2% |
 
 ¹ `_worker` includes parked thread-pool threads py-spy over-counts in
 `--subprocesses` mode — read as thread-pool overhead, not pure compute.
+² `asyncio/runners.py` is the **event-loop runner** (`asyncio.run()`), not a
+framework pipeline. AT+livekit uses **livekit-agents** (no pipecat); the only
+pipecat frames appear in the AT+pipecat and Python columns.
 
 **What the profile explains:**
 - **AT+livekit caps lowest per core because it is ONNX-bound** — the EOU multilingual
   turn detector is **49.5%** of the profile, ~5× the Silero VAD in the pipecat arms.
-  Direct cause of c10 < c14.
-- **Both pipecat arms share one shape** (worker threads + pipeline `run`, light VAD),
-  no single hotspot. Python's binder is the `asyncio.sleep` pacing *tail* — a
-  scheduling/latency issue, not compute — which is why its CPU sits at 15% while
-  audio still fails.
+  Direct cause of c10 < c14. Its remaining time is livekit Rust FFI + event loop +
+  agent-transport's livekit audio I/O — **no pipecat in this arm**.
+- **The two pipecat arms share one shape** (worker threads + event loop + light Silero
+  VAD + pipecat frames), no single hotspot. Python's binder is the `asyncio.sleep`
+  pacing *tail* — a scheduling/latency issue, not compute — which is why its CPU sits
+  at 15% while audio still fails.
 
 Speedscope JSONs committed alongside (`*.speedscope.json`, loadable in speedscope.app);
 parser in `parse_speedscope.py`.
